@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 import torch
 import torch.nn as nn
@@ -108,7 +108,7 @@ class CLIPVisionModality(Modality):
 
     @property
     def token_width(self) -> int:
-        return 4
+        return self.module.num_patches
 
     def to(self, dtype: torch.dtype, device: torch.device) -> "Modality":
         self.module.to(dtype=dtype, device=device)
@@ -128,3 +128,9 @@ class CLIPVisionModality(Modality):
             )["pixel_values"][0]
             images.append(image)
         return torch.stack(images)
+
+    def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:
+        image_features = []
+        for image_batch in encoded_values:
+            image_features.append(self.module.forward(image_batch))
+        return image_features

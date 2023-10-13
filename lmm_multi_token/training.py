@@ -87,6 +87,12 @@ def train_for_modalities(
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.unk_token
+    if tokenizer.mask_token is None:
+        tokenizer.mask_token = tokenizer.unk_token
+    if tokenizer.cls_token is None:
+        tokenizer.cls_token = tokenizer.unk_token
+    if tokenizer.sep_token is None:
+        tokenizer.sep_token = tokenizer.unk_token
 
     dataset = LMMDataset(data_args, tokenizer, modalities)
     collator = DataCollatorForSupervisedLMMDataset(tokenizer, modalities)
