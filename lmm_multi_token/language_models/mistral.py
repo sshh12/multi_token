@@ -134,20 +134,11 @@ class MistralLMMForCausalLM(MistralForCausalLM, LMMMetaForCausalLM):
         past_key_values=None,
         attention_mask=None,
         inputs_embeds=None,
+        modality_inputs=None,
         **kwargs
     ):
         if past_key_values:
             input_ids = input_ids[:, -1:]
-
-        print("????", kwargs)
-
-        position_ids = kwargs.get("position_ids", None)
-        if attention_mask is not None and position_ids is None:
-            # create position_ids on the fly for batch generation
-            position_ids = attention_mask.long().cumsum(-1) - 1
-            position_ids.masked_fill_(attention_mask == 0, 1)
-            if past_key_values:
-                position_ids = position_ids[:, -1].unsqueeze(-1)
 
         # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
         if inputs_embeds is not None and past_key_values is None:
@@ -156,10 +147,11 @@ class MistralLMMForCausalLM(MistralForCausalLM, LMMMetaForCausalLM):
             model_inputs = {"input_ids": input_ids}
 
         input_dict = {
-            "position_ids": position_ids,
+            "position_ids": None,
             "past_key_values": past_key_values,
             "use_cache": kwargs.get("use_cache"),
             "attention_mask": attention_mask,
+            **(modality_inputs or {}),
         }
 
         model_inputs.update(input_dict)

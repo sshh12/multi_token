@@ -3,8 +3,10 @@ from dataclasses import field, dataclass
 import logging
 import pathlib
 import torch
+import os
 
 import transformers
+from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 from transformers import Trainer
 
 from lmm_multi_token.training_data import (
@@ -12,8 +14,36 @@ from lmm_multi_token.training_data import (
     LMMDataset,
     DataCollatorForSupervisedLMMDataset,
 )
-from lmm_multi_token.model_utils import make_model_lora
+from lmm_multi_token.model_utils import (
+    make_model_lora,
+    get_peft_state,
+    get_peft_state_non_lora,
+    get_adapter_state,
+)
 from lmm_multi_token.modalities.base_modality import Modality
+
+
+README_TEMPLATE = """
+---
+license: apache-2.0
+base_model: {base_model}
+dataset: {dataset}
+tags:
+  - finetuned
+inference: false
+---
+
+These are weights for a version of `{base_model}` for multimodal applications. 
+
+### Modalities
+
+{modalities}
+
+### Usage
+
+GitHub: https://github.com/sshh12/lmm_multi_token
+
+"""
 
 
 @dataclass
@@ -50,19 +80,34 @@ class TrainingArguments(transformers.TrainingArguments):
 
 @dataclass
 class ModelArguments:
-    model_name_or_path: Optional[str] = field(
-        default="mistralai/Mistral-7B-Instruct-v0.1"
-    )
+    model_name_or_path: str = field(default="mistralai/Mistral-7B-Instruct-v0.1")
+    model_cls: str = field(default="MistralLMMForCausalLM")
+    modality_builder: str = field(default="vision_clip")
+    model_lora_path: Optional[str] = field(default=None)
 
 
 class LMMTrainer(Trainer):
     def _save_checkpoint(self, model, trial, metrics=None):
-        # TODO: Save non-LORA
+        checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
+
+        run_dir = self._get_output_dir(trial=trial)
+        output_dir = os.path.join(run_dir, checkpoint_folder)
+        self._save_extras(output_dir)
+
         super(LMMTrainer, self)._save_checkpoint(model, trial, metrics)
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
-        # TODO: Save non-LORA
+        self._save_extras(output_dir)
         super(LMMTrainer, self)._save(output_dir, state_dict)
+
+    def _save_extras(self, output_dir: Optional[str] = None):
+        keys_to_match = ["mm_projector", "vision_resampler"]
+        with open("test.txt", "w") as f:
+            f.write(repr(list(self.model.named_parameters())))
+        weight_to_save = get_adapter_state(self.model.named_parameters(), keys_to_match)
+
+        self.model.config.save_pretrained(output_dir)
+        torch.save(weight_to_save, os.path.join(output_dir, f"projectors.bin"))
 
 
 def train_for_modalities(
@@ -114,6 +159,9 @@ def train_for_modalities(
 
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
+    if model_args.model_lora_path:
+        raise ValueError("LoRA path not supported for training.")
+
     if training_args.lora_enable:
         logging.info("Adding LoRA adapters...")
         model = make_model_lora(model, training_args)
@@ -132,7 +180,34 @@ def train_for_modalities(
         eval_dataset=None,
     )
 
-    if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
+    if list(pathlib.Path(training_args.output_dir).glob(f"{PREFIX_CHECKPOINT_DIR}-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
         trainer.train()
+
+    # model.config.use_cache = True
+
+    trainer.save_state()
+
+    if training_args.lora_enable:
+        state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
+        non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
+        model.config.save_pretrained(training_args.output_dir)
+        model.save_pretrained(training_args.output_dir, state_dict=state_dict)
+        torch.save(
+            non_lora_state_dict,
+            os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
+        )
+
+    with open(os.path.join(training_args.output_dir, "README.md"), "w") as f:
+        modalities_text = [
+            f"* {m.__class__.__name__} (use `{m.token}` in text and provide `{m.data_key}`)"
+            for m in modalities
+        ]
+        f.write(
+            README_TEMPLATE.format(
+                base_model=model_args.model_name_or_path,
+                dataset=data_args.dataset,
+                modalities="\n".join(modalities_text),
+            )
+        )

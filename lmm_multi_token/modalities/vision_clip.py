@@ -6,6 +6,7 @@ from transformers import CLIPVisionModel, CLIPImageProcessor
 from PIL import Image
 
 from lmm_multi_token.modalities.base_modality import Modality
+from lmm_multi_token.data_tools import load_image
 
 
 class CLIPVisionModule(nn.Module):
@@ -117,7 +118,7 @@ class CLIPVisionModality(Modality):
     def preprocess_row(self, row: Dict) -> torch.Tensor:
         images = []
         for image_fn in row[self.data_key]:
-            image_obj = Image.open(image_fn).convert("RGB")
+            image_obj = load_image(image_fn)
             if self.pad_non_square_images:
                 image_obj = _expand2square(
                     image_obj,
