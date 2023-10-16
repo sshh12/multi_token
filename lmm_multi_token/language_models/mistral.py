@@ -45,7 +45,7 @@ class MistralLMMForCausalLM(MistralForCausalLM, LMMMetaForCausalLM):
         # Initialize weights and apply final processing
         self.post_init()
 
-    def get_model(self):
+    def get_model(self) -> "MistralLMMForCausalLM":
         return self.model
 
     def forward(
@@ -140,13 +140,11 @@ class MistralLMMForCausalLM(MistralForCausalLM, LMMMetaForCausalLM):
         if past_key_values:
             input_ids = input_ids[:, -1:]
 
-        # if `inputs_embeds` are passed, we only want to use them in the 1st generation step
-        if inputs_embeds is not None and past_key_values is None:
-            model_inputs = {"inputs_embeds": inputs_embeds}
-        else:
-            model_inputs = {"input_ids": input_ids}
+        if inputs_embeds is not None:
+            raise ValueError("inputs_embeds not supported")
 
-        input_dict = {
+        model_inputs = {
+            "input_ids": input_ids,
             "position_ids": None,
             "past_key_values": past_key_values,
             "use_cache": kwargs.get("use_cache"),
@@ -154,7 +152,6 @@ class MistralLMMForCausalLM(MistralForCausalLM, LMMMetaForCausalLM):
             **(modality_inputs or {}),
         }
 
-        model_inputs.update(input_dict)
         return model_inputs
 
 

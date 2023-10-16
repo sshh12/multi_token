@@ -35,6 +35,9 @@ class LMMDataset(Dataset):
     def __len__(self):
         return len(self.dataset)
 
+    def get_example(self) -> Dict:
+        return self.dataset[0]
+
     def __getitem__(self, i) -> Dict:
         item = self.dataset[i]
         return encode_chat(item, self.tokenizer, self.modalities)

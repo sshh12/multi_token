@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 from abc import ABC, abstractmethod
 from functools import cached_property
 
@@ -7,10 +7,6 @@ import torch
 
 
 class Modality(ABC):
-    @abstractmethod
-    def build_module(self) -> nn.Module:
-        pass
-
     @abstractmethod
     def build_projector(self, lm_hidden_size: int) -> nn.Module:
         pass
@@ -41,7 +37,7 @@ class Modality(ABC):
         return -abs(hash_ % 10_000)
 
     @abstractmethod
-    def preprocess_row(self, row: Dict) -> torch.Tensor:
+    def preprocess_row(self, row: Dict) -> Optional[torch.Tensor]:
         pass
 
     @abstractmethod

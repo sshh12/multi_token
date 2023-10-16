@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple, Optional
 
 import torch
 import torch.nn as nn
@@ -27,7 +27,7 @@ class CLIPVisionModule(nn.Module):
         self.image_model.requires_grad_(False)
 
     @torch.no_grad()
-    def forward(self, images):
+    def forward(self, images) -> torch.Tensor:
         image_forward_outs = self.image_model(
             images.to(device=self.device, dtype=self.dtype),
             output_hidden_states=True,
@@ -61,7 +61,7 @@ class CLIPVisionModule(nn.Module):
         return (self.config.image_size // self.config.patch_size) ** 2
 
 
-def _expand2square(pil_img, background_color):
+def _expand2square(pil_img: Image, background_color: Tuple) -> Image:
     width, height = pil_img.size
     if width == height:
         return pil_img
@@ -79,14 +79,11 @@ class CLIPVisionModality(Modality):
     def __init__(
         self,
         model_name_or_path: str = "openai/clip-vit-large-patch14-336",
-        pad_non_square_images: bool = True,
+        pad_non_square_images: bool = False,
     ):
         self.model_name_or_path = model_name_or_path
         self.module = CLIPVisionModule(model_name_or_path=self.model_name_or_path)
         self.pad_non_square_images = pad_non_square_images
-
-    def build_module(self) -> nn.Module:
-        return self.module
 
     def build_projector(self, lm_hidden_size: int) -> nn.Module:
         modules = [nn.Linear(self.module.hidden_size, lm_hidden_size)]
@@ -111,11 +108,11 @@ class CLIPVisionModality(Modality):
     def token_width(self) -> int:
         return self.module.num_patches
 
-    def to(self, dtype: torch.dtype, device: torch.device) -> "Modality":
+    def to(self, dtype: torch.dtype, device: torch.device) -> "CLIPVisionModality":
         self.module.to(dtype=dtype, device=device)
         return self
 
-    def preprocess_row(self, row: Dict) -> torch.Tensor:
+    def preprocess_row(self, row: Dict) -> Optional[torch.Tensor]:
         images = []
         for image_fn in row[self.data_key]:
             image_obj = load_image(image_fn)
@@ -128,8 +125,9 @@ class CLIPVisionModality(Modality):
                 image_obj, return_tensors="pt"
             )["pixel_values"][0]
             images.append(image)
-        return torch.stack(images)
+        return torch.stack(images) if len(images) > 0 else None
 
+    @torch.no_grad()
     def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:
         image_features = []
         for image_batch in encoded_values:

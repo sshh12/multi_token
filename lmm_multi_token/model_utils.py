@@ -53,7 +53,7 @@ def get_peft_state(named_params, bias) -> Dict:
             if bias_name in lora_bias_names:
                 to_return[bias_name] = t
     else:
-        raise NotImplementedError
+        raise NotImplementedError()
     to_return = {k: maybe_zero_3(v, ignore_status=True) for k, v in to_return.items()}
     return to_return
 
@@ -64,19 +64,6 @@ def get_peft_state_non_lora(named_params, require_grad_only=True) -> Dict:
         to_return = {k: t for k, t in to_return.items() if t.requires_grad}
     to_return = {
         k: maybe_zero_3(v, ignore_status=True).cpu() for k, v in to_return.items()
-    }
-    return to_return
-
-
-def get_adapter_state(named_params, keys_to_match) -> Dict:
-    to_return = {
-        k: t
-        for k, t in named_params
-        if any(key_match in k for key_match in keys_to_match)
-    }
-    to_return = {
-        k: maybe_zero_3(v, ignore_status=True, name=k).cpu()
-        for k, v in to_return.items()
     }
     return to_return
 
@@ -100,3 +87,14 @@ def make_model_lora(model, training_args: "TrainingArguments"):
 
     model = get_peft_model(model, lora_config)
     return model
+
+
+def fix_tokenizer(tokenizer):
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.unk_token
+    if tokenizer.mask_token is None:
+        tokenizer.mask_token = tokenizer.unk_token
+    if tokenizer.cls_token is None:
+        tokenizer.cls_token = tokenizer.unk_token
+    if tokenizer.sep_token is None:
+        tokenizer.sep_token = tokenizer.unk_token

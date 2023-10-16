@@ -1,6 +1,7 @@
 from typing import Optional, List
 from dataclasses import field, dataclass
 import logging
+import subprocess
 import pathlib
 import torch
 import os
@@ -18,7 +19,7 @@ from lmm_multi_token.model_utils import (
     make_model_lora,
     get_peft_state,
     get_peft_state_non_lora,
-    get_adapter_state,
+    fix_tokenizer,
 )
 from lmm_multi_token.modalities.base_modality import Modality
 
@@ -33,15 +34,36 @@ tags:
 inference: false
 ---
 
-These are weights for a version of `{base_model}` for multimodal applications. 
+These are weights for a version of `{base_model}` finetuned for multimodal applications. 
 
 ### Modalities
 
 {modalities}
 
+### Dataset
+
+{dataset} ({num_examples} examples)
+
+```
+{dataset_example}
+```
+
+### Training Device(s)
+
+```
+{training_devices_dump}
+```
+
 ### Usage
 
 GitHub: https://github.com/sshh12/lmm_multi_token
+
+
+### Model
+
+```
+{repr_model}
+```
 
 """
 
@@ -69,6 +91,7 @@ class TrainingArguments(transformers.TrainingArguments):
             "help": "Quantization data type to use. Should be one of `fp4` or `nf4`."
         },
     )
+    pretrain_projectors: bool = field(default=False)
     bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
     lora_r: int = 64
@@ -101,13 +124,20 @@ class LMMTrainer(Trainer):
         super(LMMTrainer, self)._save(output_dir, state_dict)
 
     def _save_extras(self, output_dir: Optional[str] = None):
-        keys_to_match = ["mm_projector", "vision_resampler"]
-        with open("test.txt", "w") as f:
-            f.write(repr(list(self.model.named_parameters())))
-        weight_to_save = get_adapter_state(self.model.named_parameters(), keys_to_match)
-
         self.model.config.save_pretrained(output_dir)
-        torch.save(weight_to_save, os.path.join(output_dir, f"projectors.bin"))
+
+        non_lora_state_dict = get_peft_state_non_lora(self.model.named_parameters())
+        torch.save(
+            non_lora_state_dict,
+            os.path.join(output_dir, "non_lora_trainables.bin"),
+        )
+
+
+def _get_training_devices_dump() -> str:
+    out = subprocess.check_output(
+        ["nvidia-smi", "--query-gpu=gpu_name,gpu_bus_id,vbios_version", "--format=csv"]
+    )
+    return out.decode("utf-8").strip()
 
 
 def train_for_modalities(
@@ -130,14 +160,7 @@ def train_for_modalities(
         padding_side="right",
         use_fast=False,
     )
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.unk_token
-    if tokenizer.mask_token is None:
-        tokenizer.mask_token = tokenizer.unk_token
-    if tokenizer.cls_token is None:
-        tokenizer.cls_token = tokenizer.unk_token
-    if tokenizer.sep_token is None:
-        tokenizer.sep_token = tokenizer.unk_token
+    fix_tokenizer(tokenizer)
 
     dataset = LMMDataset(data_args, tokenizer, modalities)
     collator = DataCollatorForSupervisedLMMDataset(tokenizer, modalities)
@@ -160,16 +183,28 @@ def train_for_modalities(
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
     if model_args.model_lora_path:
-        raise ValueError("LoRA path not supported for training.")
+        raise ValueError("LoRA path not supported for training")
 
     if training_args.lora_enable:
         logging.info("Adding LoRA adapters...")
         model = make_model_lora(model, training_args)
     else:
-        raise ValueError("LoRA must be enabled, full training is not supported (yet)")
+        raise ValueError("LoRA must be enabled, full training is not supported")
 
     model.get_model().initialize_modules(modalities)
-    print(model)
+    if training_args.pretrain_projectors:
+        model.requires_grad_(False)
+        for m in modalities:
+            proj = getattr(model.get_model(), m.name + "_lmm_projector")
+            for p in proj.parameters():
+                p.requires_grad = True
+
+    os.makedirs(training_args.output_dir, exist_ok=True)
+    with open(
+        os.path.join(training_args.output_dir, "model_named_parameters.txt"), "w"
+    ) as f:
+        for name, param in model.named_parameters():
+            f.write(f"{name} {param.shape} {param.requires_grad}\n")
 
     trainer = LMMTrainer(
         model=model,
@@ -185,29 +220,30 @@ def train_for_modalities(
     else:
         trainer.train()
 
-    # model.config.use_cache = True
-
+    model.config.use_cache = True
     trainer.save_state()
+    model.config.save_pretrained(training_args.output_dir)
+    state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
+    model.save_pretrained(training_args.output_dir, state_dict=state_dict)
 
-    if training_args.lora_enable:
-        state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
-        non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
-        model.config.save_pretrained(training_args.output_dir)
-        model.save_pretrained(training_args.output_dir, state_dict=state_dict)
-        torch.save(
-            non_lora_state_dict,
-            os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
-        )
+    non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
+    torch.save(
+        non_lora_state_dict,
+        os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
+    )
 
     with open(os.path.join(training_args.output_dir, "README.md"), "w") as f:
         modalities_text = [
-            f"* {m.__class__.__name__} (use `{m.token}` in text and provide `{m.data_key}`)"
+            f"* {m.__class__.__name__} (use `{m.token}` in text and provide `{m.data_key}`, encoded as {m.token_width} tokens)"
             for m in modalities
         ]
-        f.write(
-            README_TEMPLATE.format(
-                base_model=model_args.model_name_or_path,
-                dataset=data_args.dataset,
-                modalities="\n".join(modalities_text),
-            )
+        readme_text = README_TEMPLATE.format(
+            base_model=model_args.model_name_or_path,
+            dataset=data_args.dataset_path,
+            dataset_example=repr(dataset.get_example()),
+            num_examples=len(dataset),
+            modalities="\n".join(modalities_text),
+            training_devices_dump=_get_training_devices_dump(),
+            repr_model=f"{model_cls.__name__}.model =\n\n{repr(model)}",
         )
+        f.write(readme_text)
