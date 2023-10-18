@@ -38,7 +38,7 @@ def load_trained_lora_model(
     )
     model.get_model().initialize_pretrained_modules(modalities, non_lora_trainables)
 
-    logging.info(f"Loading & merging LoRA weights from {model_lora_path}")
+    logging.info(f"Loading and merging LoRA weights from {model_lora_path}")
     model = PeftModel.from_pretrained(model, model_lora_path)
     model = model.merge_and_unload()
     model.eval()

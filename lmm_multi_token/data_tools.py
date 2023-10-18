@@ -14,9 +14,12 @@ from lmm_multi_token.constants import IGNORE_INDEX
 
 
 def encode_chat(
-    item: Dict, tokenizer: transformers.PreTrainedTokenizer, modalities: List[Modality]
+    item: Dict,
+    tokenizer: transformers.PreTrainedTokenizer,
+    modalities: List[Modality],
 ) -> Dict:
-    chat_as_string = tokenizer.apply_chat_template(item["messages"], tokenize=False)
+    messages = list(item["messages"])
+    chat_as_string = tokenizer.apply_chat_template(messages, tokenize=False)
 
     token_to_modality = {m.token: m for m in modalities}
     modality_token_counts = Counter()
@@ -35,16 +38,19 @@ def encode_chat(
             if not subpart:
                 continue
             if subpart in token_to_modality:
+                assert (
+                    is_instruction
+                ), "There should be no modality tokens outside of instructions"
                 m = token_to_modality[subpart]
                 modality_token_counts[m.name] += 1
                 input_ids.extend([m.token_idx] * m.token_width)
                 labels.extend([IGNORE_INDEX] * m.token_width)
             elif is_instruction:
-                part_ids = tokenizer(subpart).input_ids
+                part_ids = tokenizer(subpart, add_special_tokens=False).input_ids
                 input_ids.extend(part_ids)
                 labels.extend([IGNORE_INDEX] * len(part_ids))
             else:
-                part_ids = tokenizer(subpart).input_ids
+                part_ids = tokenizer(subpart, add_special_tokens=False).input_ids
                 input_ids.extend(part_ids)
                 labels.extend(part_ids)
 
@@ -57,7 +63,9 @@ def encode_chat(
     )
     for m in modalities:
         data_dict[m.name] = m.preprocess_row(item)
-        assert data_dict[m.name].shape[0] == modality_token_counts[m.name]
+        assert (
+            data_dict[m.name].shape[0] == modality_token_counts[m.name]
+        ), "The number of preprocessed items should match the number of tokens in the instruction"
     return data_dict
 
 

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from torch.nn.functional import conv1d
 import torch
-import torch.nn as nn
+import logging
 
 from lmm_multi_token.modalities.base_modality import Modality
 
@@ -12,41 +12,39 @@ class LMMMetaModel:
     def __init__(self, config):
         super(LMMMetaModel, self).__init__(config)
 
-    def initialize_pretrained_modules(self, modalities: List[Modality], weights: Dict):
-        for m in modalities:
-            module = m.build_module()
-            projector = m.build_projector(self.config.hidden_size)
-            setattr(self, m.name, module)
-            setattr(self, m.name + "_projector", projector)
-
+    def _load_projector_weights(self, weights: Dict):
         weights = {
-            (k[11:] if k.startswith("base_model.") else k): v
+            (k[23:] if k.startswith("base_model.model.model.") else k): v
             for k, v in weights.items()
         }
-        if any(k.startswith("model.model.") for k in weights):
-            weights = {
-                (k[12:] if k.startswith("model.model.") else k): v
-                for k, v in weights.items()
-            }
-        self.load_state_dict(weights, strict=False)
+        logging.info(f"Loading pretrained weights: {list(weights.keys())}")
+        load_result = self.load_state_dict(weights, strict=False)
+        assert (
+            len(load_result.unexpected_keys) == 0
+        ), "Unexpected weights, is this the right model?"
 
-    def initialize_modules(self, modalities: List[Modality]):
+    def initialize_pretrained_modules(self, modalities: List[Modality], weights: Dict):
+        for m in modalities:
+            projector = m.build_projector(self.config.hidden_size)
+            setattr(self, m.name + "_lmm_projector", projector)
+
+        self._load_projector_weights(weights)
+
+    def initialize_modules(self, modalities: List[Modality], weights: Dict):
         names = [m.name for m in modalities]
 
         self.config.modalities = names
 
         for m in modalities:
-            module = m.build_module()
             projector = m.build_projector(self.config.hidden_size)
-            setattr(self, m.name, module)
-            setattr(self, m.name + "_projector", projector)
+            setattr(self, m.name + "_lmm_projector", projector)
 
-        # TODO: support pretrained modalities
+        self._load_projector_weights(weights)
 
 
 class LMMMetaForCausalLM(ABC):
     @abstractmethod
-    def get_model(self):
+    def get_model(self) -> "LMMMetaForCausalLM":
         pass
 
     def prepare_inputs_labels_for_multimodal(
@@ -54,28 +52,54 @@ class LMMMetaForCausalLM(ABC):
     ):
         model = self.get_model()
 
+        batch_size, seq_len = input_ids.shape
+
+        # batch_size x seq_len x embedding_hidden_size
         inputs_embeds = torch.zeros(
-            (input_ids.shape[0], input_ids.shape[1], self.config.hidden_size),
+            (batch_size, seq_len, self.config.hidden_size),
             dtype=self.dtype,
             device=self.device,
         )
 
+        # modality x batch_size x instance_idx x modality_token_width x embedding_hidden_size
         projected_tensors = []
-        for m in self.modalities:
-            m_vals = m.forward(kwargs.get(m.name))
-            mp_vals = []
-            proj = getattr(model, m.name + "_projector")
-            for m_val in m_vals:
-                mp_vals.append(proj(m_val))
-            projected_tensors.append(mp_vals)
+        if past_key_values is None:
+            for m in self.modalities:
+                # print("vision_clip", kwargs.get(m.name))
+                m_vals = m.forward(kwargs.get(m.name))
+                # print("m_vals", m_vals[0].shape, m_vals[0])
+                mp_vals = []
+                proj = getattr(model, m.name + "_lmm_projector")
+                for m_val in m_vals:
+                    mp_vals.append(proj(m_val))
+                # print("mp_vals", mp_vals[0].shape, mp_vals[0])
+                assert all(
+                    mp_val.shape[1:] == (m.token_width, self.config.hidden_size)
+                    for mp_val in mp_vals
+                ), (
+                    "Modality tensors have incorrect shape, check your projector implementation "
+                    + str(mp_vals[0].shape)
+                )
+                projected_tensors.append(mp_vals)
 
+        indices = None
         for i, input_ids_sample in enumerate(input_ids):
             is_text_mask = input_ids_sample >= 0
+
+            # fill in all the LLM-based text embeddings
             inputs_embeds[i, is_text_mask] = model.embed_tokens(
                 input_ids_sample[is_text_mask]
             )
 
+            # skip if all tokens are text tokens
+            if is_text_mask.sum() == seq_len:
+                continue
+            assert (
+                past_key_values is None
+            ), "We shouldn't have cached keys if this is the first instruction pass"
+
             for mi, m in enumerate(self.modalities):
+                # locate the group of tokens for this modality
                 m_mask = (input_ids_sample == m.token_idx).float()
                 m_kernel = torch.tensor(
                     [-1] * m.token_width, dtype=m_mask.dtype, device=m_mask.device
@@ -87,6 +111,7 @@ class LMMMetaForCausalLM(ABC):
                 indices = (m_conv[0, 0] == -m.token_width).nonzero(as_tuple=True)[0][
                     ::2
                 ]
+                # fill these embeddings with the projected modality tensor
                 for k, index in enumerate(indices):
                     batch_modality_tensor = projected_tensors[mi][i][k]
                     inputs_embeds[

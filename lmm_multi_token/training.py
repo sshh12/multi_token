@@ -31,6 +31,7 @@ base_model: {base_model}
 dataset: {dataset}
 tags:
   - finetuned
+  - multimodal
 inference: false
 ---
 
@@ -92,6 +93,7 @@ class TrainingArguments(transformers.TrainingArguments):
         },
     )
     pretrain_projectors: bool = field(default=False)
+    pretrained_projectors_path: Optional[str] = field(default=None)
     bits: int = field(default=16, metadata={"help": "How many bits to use."})
     lora_enable: bool = False
     lora_r: int = 64
@@ -191,7 +193,18 @@ def train_for_modalities(
     else:
         raise ValueError("LoRA must be enabled, full training is not supported")
 
-    model.get_model().initialize_modules(modalities)
+    if training_args.pretrained_projectors_path:
+        projector_weights = torch.load(
+            training_args.pretrained_projectors_path, map_location="cpu"
+        )
+        projector_weights = {
+            k: v for k, v in projector_weights.items() if "_lmm_projector" in k
+        }
+    else:
+        projector_weights = {}
+
+    model.get_model().initialize_modules(modalities, projector_weights)
+
     if training_args.pretrain_projectors:
         model.requires_grad_(False)
         for m in modalities:
