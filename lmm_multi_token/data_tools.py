@@ -9,8 +9,8 @@ import requests
 import transformers
 from PIL import Image
 
-from lmm_multi_token.modalities.base_modality import Modality
-from lmm_multi_token.constants import IGNORE_INDEX
+from multi_token.modalities.base_modality import Modality
+from multi_token.constants import IGNORE_INDEX
 
 
 def encode_chat(

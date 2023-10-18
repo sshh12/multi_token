@@ -6,9 +6,9 @@ from peft import PeftModel
 import torch
 import os
 
-from lmm_multi_token.model_utils import fix_tokenizer
-from lmm_multi_token.modalities.base_modality import Modality
-from lmm_multi_token.language_models.mistral import MistralForCausalLM
+from multi_token.model_utils import fix_tokenizer
+from multi_token.modalities.base_modality import Modality
+from multi_token.language_models.mistral import MistralForCausalLM
 
 
 def load_trained_lora_model(

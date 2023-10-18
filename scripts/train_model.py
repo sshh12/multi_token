@@ -1,15 +1,15 @@
 import transformers
 
-from lmm_multi_token.training import (
+from multi_token.training import (
     TrainingArguments,
     ModelArguments,
     train_for_modalities,
 )
-from lmm_multi_token.training_data import (
+from multi_token.training_data import (
     DataArguments,
 )
-from lmm_multi_token.language_models import LANGUAGE_MODEL_NAME_TO_CLASS
-from lmm_multi_token.modalities import MODALITY_BUILDERS
+from multi_token.language_models import LANGUAGE_MODEL_NAME_TO_CLASS
+from multi_token.modalities import MODALITY_BUILDERS
 
 if __name__ == "__main__":
     parser = transformers.HfArgumentParser(

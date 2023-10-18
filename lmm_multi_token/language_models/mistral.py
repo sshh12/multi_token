@@ -14,7 +14,7 @@ from transformers import (
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
-from lmm_multi_token.language_models.base_model import (
+from multi_token.language_models.base_model import (
     LMMMetaModel,
     LMMMetaForCausalLM,
 )

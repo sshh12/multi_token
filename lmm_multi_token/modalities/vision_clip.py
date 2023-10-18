@@ -5,8 +5,8 @@ import torch.nn as nn
 from transformers import CLIPVisionModel, CLIPImageProcessor
 from PIL import Image
 
-from lmm_multi_token.modalities.base_modality import Modality
-from lmm_multi_token.data_tools import load_image
+from multi_token.modalities.base_modality import Modality
+from multi_token.data_tools import load_image
 
 
 class CLIPVisionModule(nn.Module):

@@ -5,7 +5,7 @@ from torch.nn.functional import conv1d
 import torch
 import logging
 
-from lmm_multi_token.modalities.base_modality import Modality
+from multi_token.modalities.base_modality import Modality
 
 
 class LMMMetaModel:
@@ -63,16 +63,15 @@ class LMMMetaForCausalLM(ABC):
 
         # modality x batch_size x instance_idx x modality_token_width x embedding_hidden_size
         projected_tensors = []
+        # assuming that if caching is enabled, we'll never have past_key_values AND need to encode the instruction modality values
         if past_key_values is None:
             for m in self.modalities:
-                # print("vision_clip", kwargs.get(m.name))
                 m_vals = m.forward(kwargs.get(m.name))
-                # print("m_vals", m_vals[0].shape, m_vals[0])
                 mp_vals = []
                 proj = getattr(model, m.name + "_lmm_projector")
                 for m_val in m_vals:
                     mp_vals.append(proj(m_val))
-                # print("mp_vals", mp_vals[0].shape, mp_vals[0])
+
                 assert all(
                     mp_val.shape[1:] == (m.token_width, self.config.hidden_size)
                     for mp_val in mp_vals

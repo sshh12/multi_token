@@ -5,10 +5,10 @@ with open("requirements.txt") as f:
 
 
 setup(
-    name="lmm_multi_token",
+    name="multi_token",
     version="0.0.1",
     description="",
-    url="https://github.com/sshh12/lmm_multi_token",
+    url="https://github.com/sshh12/multi_token",
     author="Shrivu Shankar",
     license="Apache License 2.0",
     packages=find_packages(),

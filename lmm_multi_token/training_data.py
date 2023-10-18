@@ -8,9 +8,9 @@ import transformers
 import torch
 import re
 
-from lmm_multi_token.modalities.base_modality import Modality
-from lmm_multi_token.constants import IGNORE_INDEX
-from lmm_multi_token.data_tools import encode_chat
+from multi_token.modalities.base_modality import Modality
+from multi_token.constants import IGNORE_INDEX
+from multi_token.data_tools import encode_chat
 
 
 @dataclass

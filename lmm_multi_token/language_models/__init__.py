@@ -1,4 +1,4 @@
-from lmm_multi_token.language_models.mistral import (
+from multi_token.language_models.mistral import (
     MistralLMMForCausalLM,
 )
 

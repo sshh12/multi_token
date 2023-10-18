@@ -10,18 +10,18 @@ import transformers
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 from transformers import Trainer
 
-from lmm_multi_token.training_data import (
+from multi_token.training_data import (
     DataArguments,
     LMMDataset,
     DataCollatorForSupervisedLMMDataset,
 )
-from lmm_multi_token.model_utils import (
+from multi_token.model_utils import (
     make_model_lora,
     get_peft_state,
     get_peft_state_non_lora,
     fix_tokenizer,
 )
-from lmm_multi_token.modalities.base_modality import Modality
+from multi_token.modalities.base_modality import Modality
 
 
 README_TEMPLATE = """
@@ -57,7 +57,7 @@ These are weights for a version of `{base_model}` finetuned for multimodal appli
 
 ### Usage
 
-GitHub: https://github.com/sshh12/lmm_multi_token
+GitHub: https://github.com/sshh12/multi_token
 
 
 ### Model
