@@ -1,9 +1,33 @@
 # multi_token
 
+> Embed arbitrary modalities (images, audio, documents, etc) into large language models.
 
-## Comparision to LLAVA
+## Basic Usage
+
+TODO
+
+## Training
+
+### Add a Modality
+
+TODO
+
+### Pretraining
+
+TODO
+
+### Finetuning
+
+TODO
+
+### Inference
+
+TODO
+
+## Comparision to LLaVA
 
 > LLaVA: Large Language and Vision Assistant
+>
 > [[Project Page](https://llava-vl.github.io/)] [[Demo](https://llava.hliu.cc/)]  [[Data](https://github.com/haotian-liu/LLaVA/blob/main/docs/Data.md)] [[Model Zoo](https://github.com/haotian-liu/LLaVA/blob/main/docs/MODEL_ZOO.md)]
 > 
 > **Improved Baselines with Visual Instruction Tuning** [[Paper](https://arxiv.org/abs/2310.03744)] <br>
