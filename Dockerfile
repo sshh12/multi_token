@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y git curl nano wget
 
 RUN git clone https://github.com/sshh12/multi_token \
         && cd multi_token \
-        && pip install requirements.txt \
+        && pip install -r requirements.txt \
         && pip install -e .
 
 RUN pip install flash-attn --no-build-isolation
