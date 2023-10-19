@@ -2,7 +2,7 @@
 
 > Embed arbitrary modalities (images, audio, documents, etc) into large language models.
 
-This library is designed to be an extension of LLaVA for encoding ✨anything✨ (images, sounds, documents, videos, motion capture, screenshots, voice recordings, ...) into a format that can used in large language models. It's primary contribution is the ability to embed multiple instances and modalities into a single model and a framework to doing so fairly easily.
+This library is designed to be an extension of LLaVA for encoding ✨anything✨ (images, sounds, documents, videos, motion capture, screenshots, voice recordings, ...) into a format that can used in large language models. It's primary contribution is the ability to embed multiple instances and modalities into a single model and a framework for doing so fairly easily.
 
 ## Usage
 
@@ -25,7 +25,7 @@ class MyModality(Modality):
         # ...
 
     def build_projector(self, lm_hidden_size: int) -> nn.Module:
-        # a pytorch module that converts a preprocessed items into a tensor `(batch size x token width x lm_hidden_size)`
+        # a pytorch module that converts a preprocessed item (after `forward`) into a tensor `(batch size x token width x lm_hidden_size)`
 
     @property
     def name(self) -> str:
@@ -53,7 +53,7 @@ class MyModality(Modality):
 
     @torch.no_grad()
     def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:
-        # encode preprocessed values into the format that will be fed into the projector
+        # encode `preprocess_row` output values into the format that will be fed into the projector
 ```
 
 </details>
@@ -66,6 +66,29 @@ MODALITY_BUILDERS = {
     "my_modality": lambda: [MyModality()],
 }
 ```
+
+### Dataset
+
+You can see some of the existing [scripts](https://github.com/sshh12/multi_token/tree/main/scripts) for putting things into the correct dataset format.
+
+Schema:
+```javascript
+// LLaVA/CLIP example
+{
+    "id": "arbitrary-id-123",
+    "images": ["/path/to/image.png"],
+    "messages": [{"role": "user", "content": "Describe <image>"}, {"role": "assistant", "content": "This is a potato."}],
+}
+
+// Custom
+{
+    "id": "arbitrary-id-123",
+    "my_modality_items": ["/path/to/data OR just the full document"],
+    "messages": [{"role": "user", "content": "Describe <my-modality>"}, {"role": "assistant", "content": "This is ..."}],
+}
+```
+
+Then save with `dataset.save_to_disk(output_folder)`.
 
 ### Pretraining
 
@@ -105,7 +128,7 @@ If one were to train a model using this library with the same base model and pro
 
 * Multi-GPU support
 * Full (non-LoRA training)
-* Quantization (qLoRa)
+* Quantization (qLoRA)
 * Efficient batch preprocessing
 * Efficient batch projection
 * Efficient batch collation (based on dataset lengths)
