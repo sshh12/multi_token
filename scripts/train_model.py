@@ -1,4 +1,5 @@
 import transformers
+import logging
 
 from multi_token.training import (
     TrainingArguments,
@@ -12,6 +13,8 @@ from multi_token.language_models import LANGUAGE_MODEL_NAME_TO_CLASS
 from multi_token.modalities import MODALITY_BUILDERS
 
 if __name__ == "__main__":
+    logging.getLogger().setLevel(logging.INFO)
+
     parser = transformers.HfArgumentParser(
         (TrainingArguments, ModelArguments, DataArguments)
     )

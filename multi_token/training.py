@@ -185,7 +185,9 @@ def train_for_modalities(
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
     if model_args.model_lora_path:
-        raise ValueError("LoRA path not supported for training")
+        raise ValueError(
+            "LoRA path not supported for training -- set the output path to an existing model to resume training"
+        )
 
     if training_args.lora_enable:
         logging.info("Adding LoRA adapters...")

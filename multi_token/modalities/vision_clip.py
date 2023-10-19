@@ -6,6 +6,7 @@ from transformers import CLIPVisionModel, CLIPImageProcessor
 from PIL import Image
 
 from multi_token.modalities.base_modality import Modality
+from multi_token.modalities.projectors import build_patch_mlp_projector
 from multi_token.data_tools import load_image
 
 
@@ -80,17 +81,19 @@ class CLIPVisionModality(Modality):
         self,
         model_name_or_path: str = "openai/clip-vit-large-patch14-336",
         pad_non_square_images: bool = False,
+        num_projector_layers: int = 2,
     ):
         self.model_name_or_path = model_name_or_path
         self.module = CLIPVisionModule(model_name_or_path=self.model_name_or_path)
         self.pad_non_square_images = pad_non_square_images
+        self.num_projector_layers = num_projector_layers
 
     def build_projector(self, lm_hidden_size: int) -> nn.Module:
-        modules = [nn.Linear(self.module.hidden_size, lm_hidden_size)]
-        for _ in range(1, 2):
-            modules.append(nn.GELU())
-            modules.append(nn.Linear(lm_hidden_size, lm_hidden_size))
-        return nn.Sequential(*modules)
+        return build_patch_mlp_projector(
+            self.module.hidden_size,
+            lm_hidden_size,
+            num_layers=self.num_projector_layers,
+        )
 
     @property
     def name(self) -> str:
