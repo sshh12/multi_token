@@ -69,6 +69,8 @@ class LMMMetaForCausalLM(ABC):
                 m_vals = m.forward(kwargs.get(m.name))
                 mp_vals = []
                 proj = getattr(model, m.name + "_lmm_projector")
+
+                # project each batch into language model token space
                 for m_val in m_vals:
                     mp_vals.append(proj(m_val))
 

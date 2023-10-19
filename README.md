@@ -2,7 +2,9 @@
 
 > Embed arbitrary modalities (images, audio, documents, etc) into large language models.
 
-## Basic Usage
+This library is designed to be an extension of LLaVA for encoding ✨anything✨ (images, sounds, documents, videos, motion capture, screenshots, voice recordings, ...) into a format that can used in large language models. It's primary contribution is the ability to embed multiple instances and modalities into a single model and a framework to doing so fairly easily.
+
+## Usage
 
 TODO
 
@@ -10,7 +12,60 @@ TODO
 
 ### Add a Modality
 
-TODO
+You can do this by implementing an instance of `multi_token.modalities.base_modality.Modality` (see [CLIP for vision example](https://github.com/sshh12/multi_token/blob/main/multi_token/modalities/vision_clip.py)).
+
+<details>
+<summary>See annotated example</summary>
+
+```python
+class MyModality(Modality):
+    def __init__(
+        self,
+    ):
+        # ...
+
+    def build_projector(self, lm_hidden_size: int) -> nn.Module:
+        # a pytorch module that converts a preprocessed items into a tensor `(batch size x token width x lm_hidden_size)`
+
+    @property
+    def name(self) -> str:
+        # the name/ID for this modality
+        return "my_modality"
+
+    @property
+    def token(self) -> str:
+        # the token you'll use in text to represent this
+        return "<my-modality>"
+
+    @property
+    def data_key(self) -> str:
+        # the key in your dataset rows for raw instances of this
+        return "my_modality_items"
+
+    @property
+    def token_width(self) -> int:
+        # how many tokens should we use to present instances of this?
+        # too small and it's not descriptive enough, too large and you are using up the context window
+        return 1
+
+    def preprocess_row(self, row: Dict) -> Optional[torch.Tensor]:
+        # convert raw dataset rows into an arbitrary tensor to pass to `forward`
+
+    @torch.no_grad()
+    def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:
+        # encode preprocessed values into the format that will be fed into the projector
+```
+
+</details>
+
+Register this new modality by adding it to `multi_token.modalities.MODALITY_BUILDERS`.
+
+```python
+MODALITY_BUILDERS = {
+    ...,
+    "my_modality": lambda: [MyModality()],
+}
+```
 
 ### Pretraining
 
@@ -46,13 +101,6 @@ The inspiration and much of the source code for this project comes from the orig
 
 If one were to train a model using this library with the same base model and projection config as LLaVA-1.5, I would expect nearly identical performance (barring any bugs in this implementation).
 
-### Windows Docker Dev
-
-My local dev setup is Windows + WSL + Docker + 3090 TI. `F:/` is configured to be a large data drive that I share among containers.
-
-1. `docker build -t multi-token-dev .`
-2. `docker run -it --gpus all -p 7860:7860 --mount type=bind,source=F:/docker-hf-cache,target=/root/.cache/huggingface --mount type=bind,source=F:/docker-data,target=/data --name multi-token-dev multi-token-dev`
-
 ## TODOs
 
 * Multi-GPU support
@@ -64,3 +112,10 @@ My local dev setup is Windows + WSL + Docker + 3090 TI. `F:/` is configured to b
 * Efficient batch inference
 * Allow for non-INST based instruction formats
 * Support more base language models
+
+## Windows Docker Dev
+
+My local dev setup is Windows + WSL + Docker + 3090 Ti. `F:/` is configured to be a large data drive that I share among containers.
+
+1. `docker build -t multi-token-dev .`
+2. `docker run -it --gpus all -p 7860:7860 --mount type=bind,source=F:/docker-hf-cache,target=/root/.cache/huggingface --mount type=bind,source=F:/docker-data,target=/data --name multi-token-dev multi-token-dev`
