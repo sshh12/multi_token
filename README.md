@@ -6,7 +6,37 @@ This library is designed to be an extension of LLaVA for encoding ✨anything✨
 
 ## Usage
 
-TODO
+| Base Model                                                | Model | Notes |
+| --------------------------------------------------- | ---------- | ------- |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo)       | This is a __very limited__ image model trained on only a few caption-only examples for the sake of demonstrating a proof of concept. A fully trained model (comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA)) is coming soon! Encode images as `<image>` and with `images`.  |
+
+### Vision (LLaVA)
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo \
+    --port 7860
+```
+
+```python
+requests.post(
+    "http://localhost:7860/generate",
+    json={
+        "messages": [{"role": "user", "content": "Tell me about this image <image>"}],
+        "images": ["https://llava-vl.github.io/static/images/view.jpg"],
+    },
+).json()
+# {'output': 'a dock on the lake'}
+```
+
+### Ideas
+
+Some ideas I want to try to implement in the near future:
+* **Ada2DocumentModality**: encode documents into the language model's token space for a lossy 4 million token context window (500 LMM tokens * 8k OpenAI ADA2 context window)
+* **WhisperTranscriptModality**: encode voice audio so you can do things like `Answer the question asked in <audio>`. Given additional metadata like the speaker tone, accent, etc. this could be trained to personalize the response in a way that chat-based Q&A can't.
+* **ImageBindModality**: encode images/audio/documents from [ImageBind](https://github.com/facebookresearch/ImageBind)
+* **MultiImage Q&A**: train a version of VisionClipModality (aka LLaVA) that takes multiple images inputs and answers questions
 
 ## Training
 
@@ -92,15 +122,105 @@ Then save with `dataset.save_to_disk(output_folder)`.
 
 ### Pretraining
 
-TODO
+Use this command with standard huggingface training arguments:
+
+```
+deepspeed scripts/train_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_cls MistralLMMForCausalLM \
+    --modality_builder vision_clip \
+    --dataset_path /data/llava-chat-captions \
+    --output_dir /data/output/my_lmm_pretrain \
+    --pretrain_projectors \
+    --lora_enable True \
+    --bf16 True \
+    --tf32 True \
+    --num_train_epochs 1 \
+    --gradient_checkpointing True \
+    --per_device_train_batch_size 1 \
+    --per_device_eval_batch_size 1 \
+    --gradient_accumulation_steps 32 \
+    --model_max_length 2048 \
+    --evaluation_strategy "no" \
+    --save_strategy "steps" \
+    --save_steps 1000 \
+    --save_total_limit 1 \
+    --learning_rate 1e-5 \
+    --weight_decay 0. \
+    --warmup_ratio 0.03 \
+    --lr_scheduler_type "cosine" \
+    --dataloader_num_workers 2 \
+    --logging_steps 1 \
+    --report_to wandb \
+    --deepspeed ./configs/zero2.json
+```
+
+The key arguments are:
+* `--modality_builder`: the name of the modality builder to use (see `MODALITY_BUILDERS`)
+* `--pretrain_projectors`: freeze the language model and only train the projectors
+* `--model_cls`: the model class to use (this should match your base model)
 
 ### Finetuning
 
-TODO
+Use this command with standard huggingface training arguments:
+
+```
+deepspeed scripts/train_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_cls MistralLMMForCausalLM \
+    --modality_builder vision_clip \
+    --pretrained_projectors_path /data/output/my_lmm_pretrain/checkpoint-4000/non_lora_trainables.bin \
+    --dataset_path /data/llava-chat-captions \
+    --output_dir /data/output/my_lmm_pretrain \
+    --pretrain_projectors \
+    --lora_enable True \
+    --bf16 True \
+    --tf32 True \
+    --num_train_epochs 1 \
+    --gradient_checkpointing True \
+    --per_device_train_batch_size 1 \
+    --per_device_eval_batch_size 1 \
+    --gradient_accumulation_steps 32 \
+    --model_max_length 2048 \
+    --evaluation_strategy "no" \
+    --save_strategy "steps" \
+    --save_steps 1000 \
+    --save_total_limit 1 \
+    --learning_rate 1e-5 \
+    --weight_decay 0. \
+    --warmup_ratio 0.03 \
+    --lr_scheduler_type "cosine" \
+    --dataloader_num_workers 2 \
+    --logging_steps 1 \
+    --report_to wandb \
+    --deepspeed ./configs/zero2.json
+```
+
+The key arguments are:
+* `--modality_builder`: the name of the modality builder to use (see `MODALITY_BUILDERS`)
+* `--pretrained_projectors_path`: the path to the pretrained projectors (from the pretraining step)
+* `--model_cls`: the model class to use (this should match your base model)
+
+You can also omit `pretrained_projectors_path` to just train the full model from scratch. According to the LLaVA paper, this is not as good as training the projectors first (but it will work).
 
 ### Inference
 
-TODO
+Use the following to run a local flask server for inference:
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path /data/output/lmm_just_trained_folder \
+    --port 7860
+```
+
+You can use this utility to upload your model to huggingface:
+
+```
+python scripts/upload_model.py \
+    -r username/my-new-lmm \
+    -m /data/output/lmm_just_trained_folder
+```
 
 ## Comparision to LLaVA
 
@@ -138,7 +258,7 @@ If one were to train a model using this library with the same base model and pro
 
 ## Windows Docker Dev
 
-My local dev setup is Windows + WSL + Docker + 3090 Ti. `F:/` is configured to be a large data drive that I share among containers.
+My local dev setup is Windows + WSL + Docker + 3090 Ti (24GB VRAM). `F:/` is configured to be a large data drive that I share among containers.
 
 1. `docker build -t multi-token-dev .`
 2. `docker run -it --gpus all -p 7860:7860 --mount type=bind,source=F:/docker-hf-cache,target=/root/.cache/huggingface --mount type=bind,source=F:/docker-data,target=/data --name multi-token-dev multi-token-dev`

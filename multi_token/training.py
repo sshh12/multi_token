@@ -173,6 +173,8 @@ def train_for_modalities(
     )
     model.modalities = modalities
     model.config.use_cache = False
+    model.config.model_cls = model_cls.__name__
+    model.config.modality_builder = model_args.modality_builder
 
     if training_args.gradient_checkpointing:
         if hasattr(model, "enable_input_require_grads"):
