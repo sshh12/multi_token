@@ -1,7 +1,7 @@
 from typing import Type, List, Optional
 import logging
 
-from transformers import AutoTokenizer, AutoConfig
+from transformers import AutoTokenizer, AutoConfig, BitsAndBytesConfig
 from huggingface_hub import hf_hub_download
 from peft import PeftModel
 import torch
@@ -19,10 +19,25 @@ def load_trained_lora_model(
     model_lora_path: str,
     model_cls: Optional[Type] = None,
     modalities: Optional[List[Modality]] = None,
+    load_bits: int = 16,
     device_map: str = "auto",
 ):
     load_kwargs = {"device_map": device_map}
-    load_kwargs["torch_dtype"] = torch.float16
+
+    if load_bits == 8:
+        load_kwargs["load_in_8bit"] = True
+    elif load_bits == 4:
+        load_kwargs["load_in_4bit"] = True
+        load_kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+        )
+    elif load_bits == 16:
+        load_kwargs["torch_dtype"] = torch.float16
+    else:
+        raise ValueError(f"Invalid load_bits: {load_bits}")
 
     tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, use_fast=False)
     fix_tokenizer(tokenizer)
@@ -33,7 +48,7 @@ def load_trained_lora_model(
     if modalities is None:
         modalities = MODALITY_BUILDERS[cfg.modality_builder]()
 
-    logging.info(f"Loading base model from {model_name_or_path}")
+    logging.info(f"Loading base model from {model_name_or_path} as {load_bits} bits")
     model = model_cls.from_pretrained(
         model_name_or_path, low_cpu_mem_usage=True, config=cfg, **load_kwargs
     )
@@ -55,7 +70,9 @@ def load_trained_lora_model(
 
     logging.info(f"Loading and merging LoRA weights from {model_lora_path}")
     model = PeftModel.from_pretrained(model, model_lora_path)
-    model = model.merge_and_unload()
+    if load_bits == 16:
+        # TODO: Figure out why this fails for other bit sizes
+        model = model.merge_and_unload()
     model.eval()
 
     return model, tokenizer

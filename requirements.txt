@@ -1,3 +1,4 @@
 transformers>=4.34.0
 accelerate>=0.21.0
 scipy>=1.11.3
+bitsandbytes>=0.41.0

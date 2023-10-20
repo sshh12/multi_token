@@ -16,6 +16,7 @@ from multi_token.data_tools import encode_chat
 class ServeArguments(ModelArguments):
     port: int = field(default=8080)
     host: str = field(default="0.0.0.0")
+    load_bits: int = field(default=16)
     max_new_tokens: int = field(default=128)
     temperature: float = field(default=0.01)
 
@@ -30,6 +31,7 @@ if __name__ == "__main__":
     model, tokenizer = load_trained_lora_model(
         model_name_or_path=serve_args.model_name_or_path,
         model_lora_path=serve_args.model_lora_path,
+        load_bits=serve_args.load_bits,
     )
 
     app = Flask(__name__)

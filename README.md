@@ -37,6 +37,7 @@ pip install flash-attn --no-build-isolation
 python scripts/serve_model.py \
     --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
     --model_lora_path sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo \
+    --load_bits 4 \
     --port 7860
 ```
 
@@ -269,7 +270,7 @@ If one were to train a model using this library with the same base model and pro
 
 * Multi-GPU support
 * Full (non-LoRA training)
-* Quantization (QLoRA)
+* Training quantization (QLoRA)
 * Efficient batch preprocessing
 * Efficient batch projection
 * Efficient batch collation (based on dataset lengths)
