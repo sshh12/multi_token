@@ -2,17 +2,17 @@
 
 > Embed arbitrary modalities (images, audio, documents, etc) into large language models.
 
-This library is designed to be an extension of LLaVA for encoding ✨anything✨ (images, sounds, documents, videos, motion capture, screenshots, voice recordings, ...) into a format that can used in large language models. It's primary contribution is the ability to embed multiple instances and modalities into a single model and a framework for doing so fairly easily.
+This library is designed to be an extension of LLaVA for encoding ✨anything✨ (images, sounds, documents, videos, motion capture, screenshots, voice recordings, ...) into a format that can used in large language models. Its primary contribution is the ability to embed multiple instances and modalities into a single model and a framework for doing so fairly easily.
 
 Potentially with this you could ask Large Multimodal Models (LMMs):
 
-> Read \<document\> and give me a summary.
+- > Read \<document\> and give me a summary.
 
-> Listen to \<audio\> and answer the spoke question.
+- > Listen to \<audio\> and answer the spoke question.
 
-> Compare and contrast \<image\> and \<image\>
+- > Compare and contrast \<image\> and \<image\>
 
-> Given \<screenshot\> and \<game-state\>, what key should I press?
+- > Given \<screenshot\> and \<game-state\>, what key should I press?
 
 ## Usage
 
@@ -29,7 +29,7 @@ pip install flash-attn --no-build-isolation
 
 | Base Model                                                | Model | Notes |
 | --------------------------------------------------- | ---------- | ------- |
-| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo)       | This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. A fully trained model (comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA)) is coming soon! Encode images as `<image>` and with `images`.  |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo)       | ⚠️ This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. A fully trained model (comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA)) is coming soon! <br/> <br/> Encode images as `<image>` and with `images`.  |
 
 ### Vision (LLaVA equivalent)
 
@@ -273,9 +273,9 @@ If one were to train a model using this library with the same base model and pro
 * Training quantization (QLoRA)
 * Efficient batch preprocessing
 * Efficient batch projection
-* Efficient batch collation (based on dataset lengths)
+* Efficient batch collation (based on example lengths)
 * Efficient batch inference
-* Allow for non-INST based instruction formats
+* Allow for non-`INST` based instruction formats and system tokens
 * Support more base language models
 
 ## Windows Docker Dev

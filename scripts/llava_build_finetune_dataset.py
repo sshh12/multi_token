@@ -20,6 +20,13 @@ def _convert_convo(convo) -> List:
     return msgs
 
 
+def _fix_path(path):
+    parts = path.split("/")
+    parts = [parts[0], parts[1], parts[1], *parts[2:]]
+    new_path = os.path.join(*parts)
+    return new_path
+
+
 def main(args):
     def gen(json_fns):
         for json_fn in json_fns:
@@ -27,9 +34,9 @@ def main(args):
                 data = json.load(f)
             for row in data:
                 img_path = row["image"]
-                fn = os.path.join(args.image_folder, img_path)
+                fn = os.path.join(args.image_folder, _fix_path(img_path))
                 if not os.path.exists(fn):
-                    print("Skipping", fn)
+                    print("Skipping", fn, repr(img_path))
                     continue
                 yield {
                     "id": str(row["id"]),
