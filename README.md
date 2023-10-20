@@ -4,13 +4,34 @@
 
 This library is designed to be an extension of LLaVA for encoding ✨anything✨ (images, sounds, documents, videos, motion capture, screenshots, voice recordings, ...) into a format that can used in large language models. It's primary contribution is the ability to embed multiple instances and modalities into a single model and a framework for doing so fairly easily.
 
+Potentially with this you could ask Large Multimodal Models (LMMs):
+
+> Read \<document\> and give me a summary.
+
+> Listen to \<audio\> and answer the spoke question.
+
+> Compare and contrast \<image\> and \<image\>
+
+> Given \<screenshot\> and \<game-state\>, what key should I press?
+
 ## Usage
+
+```bash
+git clone https://github.com/sshh12/multi_token \
+        && cd multi_token \
+        && pip install -r requirements.txt \
+        && pip install -e .
+
+pip install flash-attn --no-build-isolation
+```
+
+### Model Zoo
 
 | Base Model                                                | Model | Notes |
 | --------------------------------------------------- | ---------- | ------- |
-| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo)       | This is a __very limited__ image model trained on only a few caption-only examples for the sake of demonstrating a proof of concept. A fully trained model (comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA)) is coming soon! Encode images as `<image>` and with `images`.  |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo)       | This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. A fully trained model (comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA)) is coming soon! Encode images as `<image>` and with `images`.  |
 
-### Vision (LLaVA)
+### Vision (LLaVA equivalent)
 
 ```
 python scripts/serve_model.py \
@@ -248,7 +269,7 @@ If one were to train a model using this library with the same base model and pro
 
 * Multi-GPU support
 * Full (non-LoRA training)
-* Quantization (qLoRA)
+* Quantization (QLoRA)
 * Efficient batch preprocessing
 * Efficient batch projection
 * Efficient batch collation (based on dataset lengths)
