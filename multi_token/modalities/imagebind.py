@@ -88,7 +88,7 @@ class ImageBindModality(Modality):
                             {
                                 ModalityType.TEXT: data.load_and_transform_text(
                                     [item_path], self.device
-                                )
+                                ).cpu()
                             }
                         )
                     elif ib_modality == ModalityType.VISION:
@@ -96,7 +96,7 @@ class ImageBindModality(Modality):
                             {
                                 ModalityType.VISION: data.load_and_transform_vision_data(
                                     [item_path], self.device
-                                )
+                                ).cpu()
                             }
                         )
                     elif ib_modality == ModalityType.AUDIO:
@@ -104,7 +104,7 @@ class ImageBindModality(Modality):
                             {
                                 ModalityType.AUDIO: data.load_and_transform_audio_data(
                                     [item_path], self.device
-                                )
+                                ).cpu()
                             }
                         )
                     else:
@@ -120,7 +120,9 @@ class ImageBindModality(Modality):
             for item in item_batch:
                 item = {k: v.to(device=self.device) for k, v in item.items()}
                 item_batch_emb.extend(list(self.module.forward(item).values()))
-            item_features.append(torch.stack(item_batch_emb))
+            item_features.append(
+                torch.stack(item_batch_emb).to(device=self.device, dtype=self.dtype)
+            )
         # batch_size x num_items x 1 x embedding_size
         return item_features
 
