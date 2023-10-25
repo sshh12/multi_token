@@ -8,4 +8,4 @@ git clone https://github.com/sshh12/multi_token \
         && pip install -e .
 
 pip install flash-attn --no-build-isolation
-pip install wandb deepspeed
+pip install wandb

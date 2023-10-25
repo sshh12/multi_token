@@ -70,8 +70,7 @@ class ImageBindModality(Modality):
     def to(self, dtype: torch.dtype, device: torch.device) -> "ImageBindModality":
         self.device = device
         self.dtype = dtype
-        # ignore dtype
-        self.module.to(device=device)
+        # ignore
         return self
 
     def preprocess_rows(self, rows: List[Dict]) -> List[List[Dict]]:
