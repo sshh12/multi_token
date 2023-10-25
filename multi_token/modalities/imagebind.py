@@ -36,10 +36,12 @@ class ImageBindModality(Modality):
     def __init__(
         self,
         num_projector_layers: int = 2,
-        num_tokens: int = 2,
+        num_tokens: int = 4,
+        preprocess_device: str = "cpu",
     ):
         self.module = ImageBindModule()
         self.device = "cpu"
+        self.preprocess_device = preprocess_device
         self.num_projector_layers = num_projector_layers
         self.num_tokens = num_tokens
 
@@ -70,6 +72,7 @@ class ImageBindModality(Modality):
     def to(self, dtype: torch.dtype, device: torch.device) -> "ImageBindModality":
         self.device = device
         self.dtype = dtype
+        self.module.to(device=device)
         # ignore
         return self
 
@@ -87,7 +90,7 @@ class ImageBindModality(Modality):
                         items.append(
                             {
                                 ModalityType.TEXT: data.load_and_transform_text(
-                                    [item_path], "cpu"
+                                    [item_path], self.preprocess_device
                                 )
                             }
                         )
@@ -95,7 +98,7 @@ class ImageBindModality(Modality):
                         items.append(
                             {
                                 ModalityType.VISION: data.load_and_transform_vision_data(
-                                    [item_path], "cpu"
+                                    [item_path], self.preprocess_device
                                 )
                             }
                         )
@@ -103,7 +106,7 @@ class ImageBindModality(Modality):
                         items.append(
                             {
                                 ModalityType.AUDIO: data.load_and_transform_audio_data(
-                                    [item_path], "cpu"
+                                    [item_path], self.preprocess_device
                                 )
                             }
                         )
@@ -119,7 +122,8 @@ class ImageBindModality(Modality):
             item_batch_emb = []
             for item in item_batch:
                 item = {
-                    k: v.to(device="cpu", dtype=torch.float32) for k, v in item.items()
+                    k: v.to(device=self.device, dtype=torch.float32)
+                    for k, v in item.items()
                 }
                 item_batch_emb.extend(list(self.module.forward(item).values()))
             item_features.append(

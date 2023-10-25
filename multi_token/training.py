@@ -194,8 +194,6 @@ def train_for_modalities(
     if training_args.lora_enable:
         logging.info("Adding LoRA adapters...")
         model = make_model_lora(model, training_args)
-    else:
-        raise ValueError("LoRA must be enabled, full training is not supported")
 
     if training_args.pretrained_projectors_path:
         projector_weights = torch.load(
@@ -253,14 +251,16 @@ def train_for_modalities(
     else:
         trainer.train()
 
-    model.config.use_cache = True
     trainer.save_state()
-    model.config.save_pretrained(training_args.output_dir)
-    state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
-    model.save_pretrained(training_args.output_dir, state_dict=state_dict)
 
-    non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
-    torch.save(
-        non_lora_state_dict,
-        os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
-    )
+    if not training_args.pretrain_projectors:
+        model.config.use_cache = True
+        model.config.save_pretrained(training_args.output_dir)
+        state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
+        model.save_pretrained(training_args.output_dir, state_dict=state_dict)
+
+        non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
+        torch.save(
+            non_lora_state_dict,
+            os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
+        )
