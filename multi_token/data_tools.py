@@ -67,9 +67,6 @@ def encode_chat(
     )
     for m in modalities:
         data_dict[m.name] = m.preprocess_rows([item])[0]
-        assert (
-            data_dict[m.name].shape[0] == modality_token_counts[m.name]
-        ), "The number of preprocessed items should match the number of tokens in the instruction"
     return data_dict
 
 
