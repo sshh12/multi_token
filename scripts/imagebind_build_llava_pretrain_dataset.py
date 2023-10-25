@@ -1,5 +1,4 @@
 from typing import List
-from PIL import Image
 import random
 import argparse
 import json
@@ -54,7 +53,7 @@ def main(args):
                 continue
             yield {
                 "id": str(row["id"]),
-                "imagebinds": [Image.open(fn).convert("RGB")],
+                "imagebinds": [fn],
                 "messages": _convert_convo(row["conversations"]),
             }
 
