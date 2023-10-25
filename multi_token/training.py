@@ -253,14 +253,13 @@ def train_for_modalities(
 
     trainer.save_state()
 
-    if not training_args.pretrain_projectors:
-        model.config.use_cache = True
-        model.config.save_pretrained(training_args.output_dir)
-        state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
-        model.save_pretrained(training_args.output_dir, state_dict=state_dict)
+    model.config.use_cache = True
+    model.config.save_pretrained(training_args.output_dir)
+    state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
+    model.save_pretrained(training_args.output_dir, state_dict=state_dict)
 
-        non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
-        torch.save(
-            non_lora_state_dict,
-            os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
-        )
+    non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
+    torch.save(
+        non_lora_state_dict,
+        os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
+    )
