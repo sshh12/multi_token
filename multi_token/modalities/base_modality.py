@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from abc import ABC, abstractmethod
 from functools import cached_property
 
@@ -37,11 +37,11 @@ class Modality(ABC):
         return -abs(hash_ % 10_000)
 
     @abstractmethod
-    def preprocess_row(self, row: Dict) -> Optional[torch.Tensor]:
+    def preprocess_rows(self, rows: List[Dict]) -> List[Optional[Any]]:
         pass
 
     @abstractmethod
-    def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:
+    def forward(self, encoded_values: List[Any]) -> List[torch.Tensor]:
         pass
 
     def to(self, dtype: torch.dtype, device: torch.device) -> "Modality":

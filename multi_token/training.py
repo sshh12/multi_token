@@ -223,6 +223,22 @@ def train_for_modalities(
         for name, param in model.named_parameters():
             f.write(f"{name} {param.shape} {param.requires_grad}\n")
 
+    with open(os.path.join(training_args.output_dir, "README.md"), "w") as f:
+        modalities_text = [
+            f"* {m.__class__.__name__} (use `{m.token}` in text and provide `{m.data_key}`, encoded as {m.token_width} tokens)"
+            for m in modalities
+        ]
+        readme_text = README_TEMPLATE.format(
+            base_model=model_args.model_name_or_path,
+            dataset=data_args.dataset_path,
+            dataset_example=repr(dataset.get_example()),
+            num_examples=len(dataset),
+            modalities="\n".join(modalities_text),
+            training_devices_dump=_get_training_devices_dump(),
+            repr_model=f"{model_cls.__name__}.model =\n\n{repr(model)}",
+        )
+        f.write(readme_text)
+
     trainer = LMMTrainer(
         model=model,
         tokenizer=tokenizer,
@@ -248,19 +264,3 @@ def train_for_modalities(
         non_lora_state_dict,
         os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
     )
-
-    with open(os.path.join(training_args.output_dir, "README.md"), "w") as f:
-        modalities_text = [
-            f"* {m.__class__.__name__} (use `{m.token}` in text and provide `{m.data_key}`, encoded as {m.token_width} tokens)"
-            for m in modalities
-        ]
-        readme_text = README_TEMPLATE.format(
-            base_model=model_args.model_name_or_path,
-            dataset=data_args.dataset_path,
-            dataset_example=repr(dataset.get_example()),
-            num_examples=len(dataset),
-            modalities="\n".join(modalities_text),
-            training_devices_dump=_get_training_devices_dump(),
-            repr_model=f"{model_cls.__name__}.model =\n\n{repr(model)}",
-        )
-        f.write(readme_text)

@@ -38,10 +38,6 @@ class CLIPVisionModule(nn.Module):
         return image_features
 
     @property
-    def dummy_feature(self):
-        return torch.zeros(1, self.hidden_size, device=self.device, dtype=self.dtype)
-
-    @property
     def dtype(self):
         return self.image_model.dtype
 
@@ -115,20 +111,25 @@ class CLIPVisionModality(Modality):
         self.module.to(dtype=dtype, device=device)
         return self
 
-    def preprocess_row(self, row: Dict) -> Optional[torch.Tensor]:
-        images = []
-        for image_fn in row[self.data_key]:
-            image_obj = load_image(image_fn)
-            if self.pad_non_square_images:
-                image_obj = _expand2square(
-                    image_obj,
-                    tuple(int(x * 255) for x in self.module.image_processor.image_mean),
-                )
-            image = self.module.image_processor.preprocess(
-                image_obj, return_tensors="pt"
-            )["pixel_values"][0]
-            images.append(image)
-        return torch.stack(images) if len(images) > 0 else None
+    def preprocess_rows(self, rows: List[Dict]) -> List[Optional[torch.Tensor]]:
+        row_values = []
+        for row in rows:
+            images = []
+            for image_fn in row[self.data_key]:
+                image_obj = load_image(image_fn)
+                if self.pad_non_square_images:
+                    image_obj = _expand2square(
+                        image_obj,
+                        tuple(
+                            int(x * 255) for x in self.module.image_processor.image_mean
+                        ),
+                    )
+                image = self.module.image_processor.preprocess(
+                    image_obj, return_tensors="pt"
+                )["pixel_values"][0]
+                images.append(image)
+            row_values.append(torch.stack(images) if len(images) > 0 else None)
+        return row_values
 
     @torch.no_grad()
     def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:

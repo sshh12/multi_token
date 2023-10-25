@@ -100,12 +100,12 @@ class MyModality(Modality):
         # too small and it's not descriptive enough, too large and you are using up the context window
         return 1
 
-    def preprocess_row(self, row: Dict) -> Optional[torch.Tensor]:
+    def preprocess_rows(self, row: List[Dict]) -> List[Optional[Any]]:
         # convert raw dataset rows into an arbitrary tensor to pass to `forward`
 
     @torch.no_grad()
-    def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:
-        # encode `preprocess_row` output values into the format that will be fed into the projector
+    def forward(self, encoded_values: List[Any]) -> List[torch.Tensor]:
+        # encode `preprocess_rows` output values into the format that will be fed into the projector
 ```
 
 </details>
