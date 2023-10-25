@@ -118,7 +118,9 @@ class ImageBindModality(Modality):
         for item_batch in encoded_values:
             item_batch_emb = []
             for item in item_batch:
-                # item = {k: v.to(device=self.device) for k, v in item.items()}
+                item = {
+                    k: v.to(device="cpu", dtype=torch.float32) for k, v in item.items()
+                }
                 item_batch_emb.extend(list(self.module.forward(item).values()))
             item_features.append(
                 torch.stack(item_batch_emb).to(device=self.device, dtype=self.dtype)
