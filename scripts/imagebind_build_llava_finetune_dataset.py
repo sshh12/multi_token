@@ -1,6 +1,6 @@
 from typing import List
-import random
 import argparse
+import random
 import json
 import os
 
@@ -23,6 +23,8 @@ REPLACEMENTS = {
 
 TEMP_TOKEN = "<<<TEMP-TOKEN>>>"
 
+EXCLUDE_WORDS = ["region", "ocr", "color", "right", "left"]
+
 
 def _convert_convo(convo) -> List:
     type_idx = TYPES.index(random.choice(TYPES))
@@ -41,6 +43,13 @@ def _convert_convo(convo) -> List:
     return msgs
 
 
+def _fix_path(path):
+    parts = path.split("/")
+    parts = [parts[0], parts[1], parts[1], *parts[2:]]
+    new_path = os.path.join(*parts)
+    return new_path
+
+
 def main(args):
     rows = []
     for json_fn in args.llava_json:
@@ -49,10 +58,20 @@ def main(args):
 
     def gen(rows):
         for row in rows:
-            img_path = row["image"]
-            fn = os.path.join(args.image_folder, img_path)
+            try:
+                img_path = row["image"]
+            except KeyError:
+                continue
+
+            # avoid tasks too image-y
+            convo_text = repr(row["conversations"]).lower()
+
+            if "ocr" in img_path or any(w in convo_text for w in EXCLUDE_WORDS):
+                continue
+
+            fn = os.path.join(args.image_folder, _fix_path(img_path))
             if not os.path.exists(fn):
-                print("Skipping", fn)
+                print("Skipping (does not exist)", fn)
                 continue
             yield {
                 "id": str(row["id"]),

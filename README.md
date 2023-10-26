@@ -278,9 +278,21 @@ If one were to train a model using this library with the same base model and pro
 * Allow for non-`INST` based instruction formats and system tokens
 * Support more base language models
 
-## Windows Docker Dev
+## Development
+
+### Windows Docker Dev
 
 My local dev setup is Windows + WSL + Docker + 3090 Ti (24GB VRAM). `F:/` is configured to be a large data drive that I share among containers.
 
 1. `docker build -t multi-token-dev .`
 2. `docker run -it --gpus all -p 7860:7860 --mount type=bind,source=F:/docker-hf-cache,target=/root/.cache/huggingface --mount type=bind,source=F:/docker-data,target=/data --name multi-token-dev multi-token-dev`
+
+### Vast.ai Dev
+
+For some models, I'm using cheapish GPU instances on [vast.ai](https://cloud.vast.ai/).
+
+1. `vastai create instance $ID --image pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel --disk 512`
+2. `ssh -p $PORT root@$HOST`
+3. `curl -o- https://raw.githubusercontent.com/sshh12/multi_token/main/scripts/vastai_setup.sh | bash`
+
+While training I run: `source ./scripts/vastai_sync.sh $INSTANCE_ID` to sync the output folder to my local machine.
