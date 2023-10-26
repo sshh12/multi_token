@@ -72,7 +72,7 @@ class ImageBindModality(Modality):
     def to(self, dtype: torch.dtype, device: torch.device) -> "ImageBindModality":
         self.device = device
         self.dtype = dtype
-        self.module.to(device=device)
+        # self.module.to(device=device)
         # ignore
         return self
 
@@ -122,8 +122,7 @@ class ImageBindModality(Modality):
             item_batch_emb = []
             for item in item_batch:
                 item = {
-                    k: v.to(device=self.device, dtype=torch.float32)
-                    for k, v in item.items()
+                    k: v.to(device="cpu", dtype=torch.float32) for k, v in item.items()
                 }
                 item_batch_emb.extend(list(self.module.forward(item).values()))
             item_features.append(
