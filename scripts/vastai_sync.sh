@@ -13,6 +13,6 @@ SOURCE_DIR="/data/output/"
 DEST_DIR="/data/output/vast_${INSTANCE_ID}"
 
 while true; do
-    rsync -arzu -v --progress --rsh=ssh -e "ssh -p ${SSH_PORT} -o StrictHostKeyChecking=no" root@${SSH_HOST}:${SOURCE_DIR} ${DEST_DIR}
+    rsync -arzu -v --progress --rsh=ssh -e "ssh -p ${SSH_PORT} -o StrictHostKeyChecking=no" --exclude '*model_states.pt' root@${SSH_HOST}:${SOURCE_DIR} ${DEST_DIR}
     sleep 300
 done

@@ -1,5 +1,4 @@
 from typing import List
-from PIL import Image
 import argparse
 import json
 import os
@@ -29,25 +28,28 @@ def _fix_path(path):
 
 
 def main(args):
-    def gen(json_fns):
-        for json_fn in json_fns:
-            with open(json_fn) as f:
-                data = json.load(f)
-            for row in data:
-                img_path = row["image"]
-                fn = os.path.join(args.image_folder, _fix_path(img_path))
-                if not os.path.exists(fn):
-                    print("Skipping", fn, repr(img_path))
-                    continue
-                yield {
-                    "id": str(row["id"]),
-                    "images": [Image.open(fn).convert("RGB")],
-                    "messages": _convert_convo(row["conversations"]),
-                }
+    rows = []
+    for json_fn in args.llava_json:
+        with open(json_fn) as f:
+            rows.extend(json.load(f))
 
-    ds = Dataset.from_generator(
-        gen, gen_kwargs={"json_fns": args.llava_json}, num_proc=len(args.llava_json)
-    )
+    def gen(rows):
+        for row in rows:
+            try:
+                img_path = row["image"]
+            except KeyError:
+                continue
+            fn = os.path.join(args.image_folder, _fix_path(img_path))
+            if not os.path.exists(fn):
+                print("Skipping", fn)
+                continue
+            yield {
+                "id": str(row["id"]),
+                "images": [fn],
+                "messages": _convert_convo(row["conversations"]),
+            }
+
+    ds = Dataset.from_generator(gen, gen_kwargs={"rows": rows}, num_proc=args.num_proc)
     ds.save_to_disk(args.output_folder)
 
 
@@ -56,5 +58,6 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--llava_json", type=str, action="append")
     parser.add_argument("-f", "--image_folder", type=str)
     parser.add_argument("-o", "--output_folder", type=str)
+    parser.add_argument("-n", "--num_proc", type=int, default=1)
     args = parser.parse_args()
     main(args)
