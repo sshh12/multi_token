@@ -8,6 +8,8 @@ from multi_token.modalities.base_modality import Modality
 from multi_token.modalities.projectors import build_mlp_vector_projector
 from multi_token.data_tools import with_local_files
 
+IMAGE_BIND_FORCE_CPU = "IMAGE_BIND_FORCE_CPU"
+
 
 class ImageBindModule(nn.Module):
     def __init__(self):
@@ -40,8 +42,9 @@ class ImageBindModality(Modality):
         preprocess_device: str = "cpu",
     ):
         self.module = ImageBindModule()
-        self.device = "cpu"
-        self.preprocess_device = preprocess_device
+        self.device = "cpu"  # used for outputs
+        self.imagebind_device = "cpu"  # used for imagebind model itself
+        self.preprocess_device = preprocess_device  # used for preprocessing
         self.num_projector_layers = num_projector_layers
         self.num_tokens = num_tokens
 
@@ -70,10 +73,13 @@ class ImageBindModality(Modality):
         return self.num_tokens
 
     def to(self, dtype: torch.dtype, device: torch.device) -> "ImageBindModality":
+        # we ignore dtype and sometimes device as well
         self.device = device
         self.dtype = dtype
-        # self.module.to(device=device)
-        # ignore
+        if IMAGE_BIND_FORCE_CPU not in os.environ:
+            # running out of VRAM on 24GB GPU
+            self.module.to(device=device)
+            self.imagebind_device = device
         return self
 
     def preprocess_rows(self, rows: List[Dict]) -> List[List[Dict]]:
@@ -122,7 +128,8 @@ class ImageBindModality(Modality):
             item_batch_emb = []
             for item in item_batch:
                 item = {
-                    k: v.to(device="cpu", dtype=torch.float32) for k, v in item.items()
+                    k: v.to(device=self.imagebind_device, dtype=torch.float32)
+                    for k, v in item.items()
                 }
                 item_batch_emb.extend(list(self.module.forward(item).values()))
             item_features.append(
