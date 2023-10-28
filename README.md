@@ -14,6 +14,8 @@ Potentially with this you could ask Large Multimodal Models (LMMs):
 
 - > Given \<screenshot\> and \<game-state\>, what key should I press?
 
+Interested in how this works? See this [blog post](https://blog.sshh.io/p/large-multimodal-models-lmms).
+
 ## Usage
 
 ```bash

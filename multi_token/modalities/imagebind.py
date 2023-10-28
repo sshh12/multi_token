@@ -9,6 +9,7 @@ from multi_token.modalities.projectors import build_mlp_vector_projector
 from multi_token.data_tools import with_local_files
 
 IMAGE_BIND_FORCE_CPU = "IMAGE_BIND_FORCE_CPU"
+IMAGE_BIND_EMBEDDING_SIZE = 1024
 
 
 class ImageBindModule(nn.Module):
@@ -31,7 +32,7 @@ class ImageBindModule(nn.Module):
 
     @property
     def embedding_size(self):
-        return 1024
+        return IMAGE_BIND_EMBEDDING_SIZE
 
 
 class ImageBindModality(Modality):
@@ -42,6 +43,7 @@ class ImageBindModality(Modality):
         preprocess_device: str = "cpu",
     ):
         self.module = ImageBindModule()
+        self.dtype = torch.float32
         self.device = "cpu"  # used for outputs
         self.imagebind_device = "cpu"  # used for imagebind model itself
         self.preprocess_device = preprocess_device  # used for preprocessing
