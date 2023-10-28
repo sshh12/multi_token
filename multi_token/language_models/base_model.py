@@ -109,14 +109,23 @@ class LMMMetaForCausalLM(ABC):
                     m_mask.unsqueeze(0).unsqueeze(0),
                     m_kernel.unsqueeze(0).unsqueeze(0),
                 )
-                indices = (m_conv[0, 0] == -m.token_width).nonzero(as_tuple=True)[0][
-                    ::2
-                ]
+
+                # where do we see `token_width`-tokens in a row?
+                indices = (m_conv[0, 0] == -m.token_width).nonzero(as_tuple=True)[0]
+
                 # fill these embeddings with the projected modality tensor
-                for k, index in enumerate(indices):
+                last_covered_idx = -1
+                k = 0
+                for possible_token_idx in indices:
+                    if possible_token_idx <= last_covered_idx:
+                        # make sure we don't overwrite an instance we've already covered
+                        # handles bug caused by back-to-back tokens
+                        continue
                     batch_modality_tensor = projected_tensors[mi][i][k]
                     inputs_embeds[
-                        i, index : index + m.token_width
+                        i, possible_token_idx : possible_token_idx + m.token_width
                     ] = batch_modality_tensor
+                    last_covered_idx = possible_token_idx + m.token_width - 1
+                    k += 1
 
         return None, attention_mask, past_key_values, inputs_embeds, labels

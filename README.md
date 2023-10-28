@@ -49,7 +49,7 @@ requests.post(
     "http://localhost:7860/generate",
     json={
         "messages": [{"role": "user", "content": "What are things I should be cautious about when I visit this place? <image>"}],
-        "images": ["https://llava-vl.github.io/static/images/view.jpg"],
+        "images": ["https://github.com/sshh12/multi_token/raw/main/.demo/llava-view.jpg"],
     },
 ).json()
 # {'output': 'When visiting this place, which is a lake with a wooden dock, there are a few things to be cautious about. First, be aware of the water depth and the presence of any hidden obstacles, such as rocks or underwater debris, that could pose a risk to your safety. Second, be mindful of the weather conditions, as sudden changes in weather can make the water unpredictable and potentially dangerous. Lastly, be cautious of any wildlife or marine life in the area, as they may pose a threat to your safety or cause damage to the dock.'}
