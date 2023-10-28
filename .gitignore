@@ -161,3 +161,4 @@ cython_debug/
 wandb/
 ssh*.json
 notebooks/
+.checkpoints/

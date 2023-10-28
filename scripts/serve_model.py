@@ -50,8 +50,7 @@ if __name__ == "__main__":
                 do_sample=True,
                 temperature=serve_args.temperature,
                 modality_inputs={
-                    m.name: encoded_dict[m.name].unsqueeze(0).to(model.device)
-                    for m in model.modalities
+                    m.name: [encoded_dict[m.name]] for m in model.modalities
                 },
             )
 

@@ -194,8 +194,6 @@ def train_for_modalities(
     if training_args.lora_enable:
         logging.info("Adding LoRA adapters...")
         model = make_model_lora(model, training_args)
-    else:
-        raise ValueError("LoRA must be enabled, full training is not supported")
 
     if training_args.pretrained_projectors_path:
         projector_weights = torch.load(
@@ -223,32 +221,6 @@ def train_for_modalities(
         for name, param in model.named_parameters():
             f.write(f"{name} {param.shape} {param.requires_grad}\n")
 
-    trainer = LMMTrainer(
-        model=model,
-        tokenizer=tokenizer,
-        args=training_args,
-        data_collator=collator,
-        train_dataset=dataset,
-        eval_dataset=None,
-    )
-
-    if list(pathlib.Path(training_args.output_dir).glob(f"{PREFIX_CHECKPOINT_DIR}-*")):
-        trainer.train(resume_from_checkpoint=True)
-    else:
-        trainer.train()
-
-    model.config.use_cache = True
-    trainer.save_state()
-    model.config.save_pretrained(training_args.output_dir)
-    state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
-    model.save_pretrained(training_args.output_dir, state_dict=state_dict)
-
-    non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
-    torch.save(
-        non_lora_state_dict,
-        os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
-    )
-
     with open(os.path.join(training_args.output_dir, "README.md"), "w") as f:
         modalities_text = [
             f"* {m.__class__.__name__} (use `{m.token}` in text and provide `{m.data_key}`, encoded as {m.token_width} tokens)"
@@ -264,3 +236,30 @@ def train_for_modalities(
             repr_model=f"{model_cls.__name__}.model =\n\n{repr(model)}",
         )
         f.write(readme_text)
+
+    trainer = LMMTrainer(
+        model=model,
+        tokenizer=tokenizer,
+        args=training_args,
+        data_collator=collator,
+        train_dataset=dataset,
+        eval_dataset=None,
+    )
+
+    if list(pathlib.Path(training_args.output_dir).glob(f"{PREFIX_CHECKPOINT_DIR}-*")):
+        trainer.train(resume_from_checkpoint=True)
+    else:
+        trainer.train()
+
+    trainer.save_state()
+
+    model.config.use_cache = True
+    model.config.save_pretrained(training_args.output_dir)
+    state_dict = get_peft_state(model.named_parameters(), training_args.lora_bias)
+    model.save_pretrained(training_args.output_dir, state_dict=state_dict)
+
+    non_lora_state_dict = get_peft_state_non_lora(model.named_parameters())
+    torch.save(
+        non_lora_state_dict,
+        os.path.join(training_args.output_dir, "non_lora_trainables.bin"),
+    )

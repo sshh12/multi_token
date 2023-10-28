@@ -14,6 +14,8 @@ Potentially with this you could ask Large Multimodal Models (LMMs):
 
 - > Given \<screenshot\> and \<game-state\>, what key should I press?
 
+Interested in how this works? See this [blog post](https://blog.sshh.io/p/large-multimodal-models-lmms).
+
 ## Usage
 
 ```bash
@@ -27,16 +29,17 @@ pip install flash-attn --no-build-isolation
 
 ### Model Zoo
 
-| Base Model                                                | Model | Notes |
-| --------------------------------------------------- | ---------- | ------- |
-| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo)       | ⚠️ This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. A fully trained model (comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA)) is coming soon! <br/> <br/> Encode images as `<image>` and with `images`.  |
+| Base Model                                                | Model | Modality | Notes |
+| - | - | - | - |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⭐🖼️ A model pretrained and finetuned on the LLaVA dataset. This should be comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA) and [LLaVA 1.5](https://llava-vl.github.io/). <br/><br/> Compute: ~160 3090 Ti hours|
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⚠️🖼️ This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. <br/><br/> Compute: ~10 3090 Ti hours |
 
-### Vision (LLaVA equivalent)
+### Vision (LLaVA-equivalent)
 
 ```
 python scripts/serve_model.py \
     --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
-    --model_lora_path sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo \
+    --model_lora_path sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA \
     --load_bits 4 \
     --port 7860
 ```
@@ -45,19 +48,17 @@ python scripts/serve_model.py \
 requests.post(
     "http://localhost:7860/generate",
     json={
-        "messages": [{"role": "user", "content": "Tell me about this image <image>"}],
+        "messages": [{"role": "user", "content": "What are things I should be cautious about when I visit this place? <image>"}],
         "images": ["https://llava-vl.github.io/static/images/view.jpg"],
     },
 ).json()
-# {'output': 'a dock on the lake'}
+# {'output': 'When visiting this place, which is a lake with a wooden dock, there are a few things to be cautious about. First, be aware of the water depth and the presence of any hidden obstacles, such as rocks or underwater debris, that could pose a risk to your safety. Second, be mindful of the weather conditions, as sudden changes in weather can make the water unpredictable and potentially dangerous. Lastly, be cautious of any wildlife or marine life in the area, as they may pose a threat to your safety or cause damage to the dock.'}
 ```
 
 ### Ideas
 
-Some ideas I want to try to implement in the near future:
-* **Ada2DocumentModality**: encode documents into the language model's token space for a lossy 4 million token context window (500 LMM tokens * 8k OpenAI ADA2 context window)
+Some other ideas I want to try to implement at some point:
 * **WhisperTranscriptModality**: encode voice audio so you can do things like `Answer the question asked in <audio>`. Given additional metadata like the speaker tone, accent, etc. this could be trained to personalize the response in a way that chat-based Q&A can't.
-* **ImageBindModality**: encode images/audio/documents from [ImageBind](https://github.com/facebookresearch/ImageBind)
 * **MultiImage Q&A**: train a version of VisionClipModality (aka LLaVA) that takes multiple images inputs and answers questions
 
 ## Training
@@ -100,12 +101,12 @@ class MyModality(Modality):
         # too small and it's not descriptive enough, too large and you are using up the context window
         return 1
 
-    def preprocess_row(self, row: Dict) -> Optional[torch.Tensor]:
+    def preprocess_rows(self, row: List[Dict]) -> List[Optional[Any]]:
         # convert raw dataset rows into an arbitrary tensor to pass to `forward`
 
     @torch.no_grad()
-    def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:
-        # encode `preprocess_row` output values into the format that will be fed into the projector
+    def forward(self, encoded_values: List[Any]) -> List[torch.Tensor]:
+        # encode `preprocess_rows` output values into the format that will be fed into the projector
 ```
 
 </details>
@@ -278,9 +279,21 @@ If one were to train a model using this library with the same base model and pro
 * Allow for non-`INST` based instruction formats and system tokens
 * Support more base language models
 
-## Windows Docker Dev
+## Development
+
+### Windows Docker Dev
 
 My local dev setup is Windows + WSL + Docker + 3090 Ti (24GB VRAM). `F:/` is configured to be a large data drive that I share among containers.
 
 1. `docker build -t multi-token-dev .`
 2. `docker run -it --gpus all -p 7860:7860 --mount type=bind,source=F:/docker-hf-cache,target=/root/.cache/huggingface --mount type=bind,source=F:/docker-data,target=/data --name multi-token-dev multi-token-dev`
+
+### Vast.ai Dev
+
+For some models, I'm using cheapish GPU instances on [vast.ai](https://cloud.vast.ai/).
+
+1. `vastai create instance $ID --image pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel --disk 512`
+2. `ssh -p $PORT root@$HOST`
+3. `curl -o- https://raw.githubusercontent.com/sshh12/multi_token/main/scripts/vastai_setup.sh | bash`
+
+While training I run: `source ./scripts/vastai_sync.sh $INSTANCE_ID` to sync the output folder to my local machine.

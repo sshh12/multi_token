@@ -1,4 +1,5 @@
 from typing import List
+import random
 import argparse
 import json
 import os
@@ -8,13 +9,33 @@ from datasets import Dataset
 from multi_token.constants import ROLE_ASSISTANT, ROLE_USER
 
 
+TYPES = ["audio", "image", "text"]
+
+REPLACEMENTS = {
+    "image": ["audio", "image", "document"],
+    "picture": ["audio file", "picture", "text snippet"],
+    "photo": ["sound", "photo", "text"],
+    "visual": ["audio", "visual", "textual"],
+    "see": ["hear", "see", "read"],
+    "look": ["sound", "look", "read"],
+    "visible": ["audible", "visible", "readable"],
+}
+
+TEMP_TOKEN = "<<<TEMP-TOKEN>>>"
+
+
 def _convert_convo(convo) -> List:
+    type_idx = TYPES.index(random.choice(TYPES))
     msgs = []
     for m in convo:
+        content = m["value"].replace("<image>", TEMP_TOKEN)
+        for k, v in REPLACEMENTS.items():
+            content = content.replace(k, v[type_idx])
+        content = content.replace(TEMP_TOKEN, "<imagebind>")
         msgs.append(
             {
                 "role": {"gpt": ROLE_ASSISTANT, "human": ROLE_USER}[m["from"]],
-                "content": m["value"],
+                "content": content,
             }
         )
     return msgs
@@ -35,7 +56,7 @@ def main(args):
                 continue
             yield {
                 "id": str(row["id"]),
-                "images": [fn],
+                "imagebinds": [fn],
                 "messages": _convert_convo(row["conversations"]),
             }
 

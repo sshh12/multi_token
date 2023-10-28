@@ -1,12 +1,11 @@
 from typing import List, Dict, Sequence
 from dataclasses import dataclass, field
-from collections import Counter
+import os
 
 from torch.utils.data import Dataset
-from datasets import load_from_disk
+from datasets import load_from_disk, load_dataset, Dataset as HFDataset
 import transformers
 import torch
-import re
 
 from multi_token.modalities.base_modality import Modality
 from multi_token.constants import IGNORE_INDEX
@@ -20,6 +19,13 @@ class DataArguments:
     )
 
 
+def _resolve_dataset(path: str) -> HFDataset:
+    if os.path.exists(path):
+        return load_from_disk(path)
+    else:
+        return load_dataset(path, split="train", data_files="*.arrow")
+
+
 class LMMDataset(Dataset):
     def __init__(
         self,
@@ -28,7 +34,7 @@ class LMMDataset(Dataset):
         modalities: List[Modality],
     ):
         super(LMMDataset, self).__init__()
-        self.dataset = load_from_disk(data_args.dataset_path)
+        self.dataset = _resolve_dataset(data_args.dataset_path)
         self.tokenizer = tokenizer
         self.modalities = modalities
 
