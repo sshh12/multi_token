@@ -25,12 +25,10 @@ def _get_tokenizer(model_name_or_path: str = GTE_DEFAULT_MODEL):
     return AutoTokenizer.from_pretrained(model_name_or_path)
 
 
-def split_text_into_documents(
-    text: str, model_name_or_path: str = GTE_DEFAULT_MODEL
-) -> List[str]:
+def split_text_into_documents(text: str) -> List[str]:
     from nltk.tokenize import sent_tokenize
 
-    tokenizer = _get_tokenizer(model_name_or_path)
+    tokenizer = _get_tokenizer(GTE_DEFAULT_MODEL)
 
     sentences = sent_tokenize(text)
     documents = [[]]
