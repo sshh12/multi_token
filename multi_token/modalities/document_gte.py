@@ -2,6 +2,7 @@ from typing import Dict, List
 
 import torch
 import torch.nn as nn
+import os
 from functools import cache
 from transformers import AutoTokenizer, AutoModel
 
@@ -11,6 +12,7 @@ from multi_token.modalities.projectors import build_mlp_vector_projector
 GTE_EMBEDDING_SIZE = 1024
 GTE_CONTEXT_WINDOW = 512
 GTE_DEFAULT_MODEL = "thenlper/gte-large"
+DOCUMENT_GTE_FORCE_CPU = "DOCUMENT_GTE_FORCE_CPU"
 
 
 def average_pool(
@@ -78,6 +80,7 @@ class DocumentGPTModality(Modality):
         self.num_tokens_output = num_tokens_output
         self.dtype = torch.float32
         self.device = "cpu"
+        self.document_gte_device = "cpu"
 
     def build_projector(self, lm_hidden_size: int) -> nn.Module:
         return build_mlp_vector_projector(
@@ -106,7 +109,10 @@ class DocumentGPTModality(Modality):
     def to(self, dtype: torch.dtype, device: torch.device) -> "DocumentGPTModality":
         self.dtype = dtype
         self.device = device
-        self.module.to(device=device)
+        if DOCUMENT_GTE_FORCE_CPU not in os.environ:
+            # running out of VRAM on 24GB GPU
+            self.module.to(device=device)
+            self.document_gte_device = device
         return self
 
     def preprocess_rows(self, rows: List[Dict]) -> List[Dict]:
@@ -130,7 +136,7 @@ class DocumentGPTModality(Modality):
         outputs = []
         for val in encoded_values:
             outputs.append(
-                self.module.forward(val)
+                self.module.forward(val.to(device=self.document_gte_device))
                 .to(device=self.device, dtype=self.dtype)
                 .view(-1, 1, self.module.embedding_size)
             )
