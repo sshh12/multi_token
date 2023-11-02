@@ -31,6 +31,7 @@ pip install flash-attn --no-build-isolation
 
 | Base Model                                                | Model | Modality | Notes |
 | - | - | - | - |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-ImageBind-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-ImageBind-LLAVA) | **ImageBind (Vision/Audio/Text)** <br/> <br/> Encode audio or image filenames as `<imagebind>` and with `imagebinds`. | ⭐🖼️🔊📚 A model pretrained and finetuned on an augmented LLaVA dataset. Might hallucinate colors from audio and needs explicit mention of if the input is a sound/image/document. <br/><br/> Compute: ~180 4090 hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⭐🖼️ A model pretrained and finetuned on the LLaVA dataset. This should be comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA) and [LLaVA 1.5](https://llava-vl.github.io/). <br/><br/> Compute: ~160 3090 Ti hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⚠️🖼️ This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. <br/><br/> Compute: ~10 3090 Ti hours |
 
@@ -53,6 +54,27 @@ requests.post(
     },
 ).json()
 # {'output': 'When visiting this place, which is a lake with a wooden dock, there are a few things to be cautious about. First, be aware of the water depth and the presence of any hidden obstacles, such as rocks or underwater debris, that could pose a risk to your safety. Second, be mindful of the weather conditions, as sudden changes in weather can make the water unpredictable and potentially dangerous. Lastly, be cautious of any wildlife or marine life in the area, as they may pose a threat to your safety or cause damage to the dock.'}
+```
+
+### ImageBind (Vision/Audio/Text)
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path sshh12/Mistral-7B-LoRA-ImageBind-LLAVA \
+    --load_bits 4 \
+    --port 7860
+```
+
+```python
+requests.post(
+    "http://localhost:7860/generate",
+    json={
+        "messages": [{"role": "user", "content": "<imagebind> What is the animal in this sound?"}],
+        "imagebinds": ["https://github.com/sshh12/multi_token/raw/main/.demo/imagebind-dog-audio.wav"],
+    },
+).json()
+# {'output': 'The animal in this sound is a dog.'}
 ```
 
 ### Ideas
