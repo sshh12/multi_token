@@ -111,8 +111,8 @@ class DocumentGPTModality(Modality):
         self.device = device
         if DOCUMENT_GTE_FORCE_CPU not in os.environ:
             # running out of VRAM on 24GB GPU
-            self.module.to(device=device)
             self.document_gte_device = device
+        self.module.to(device=self.document_gte_device)
         return self
 
     def preprocess_rows(self, rows: List[Dict]) -> List[Dict]:
