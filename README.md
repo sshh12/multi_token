@@ -31,9 +31,12 @@ pip install flash-attn --no-build-isolation
 
 | Base Model                                                | Model | Modality | Notes |
 | - | - | - | - |
-| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-ImageBind-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-ImageBind-LLAVA) | **ImageBind (Vision/Audio/Text)** <br/> <br/> Encode audio or image filenames as `<imagebind>` and with `imagebinds`. | ⭐🖼️🔊📚 A model pretrained and finetuned on an augmented LLaVA dataset. Might hallucinate colors from audio and needs explicit mention of if the input is a sound/image/document. <br/><br/> Compute: ~180 4090 hours|
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-DocumentGTE-260K-x128](https://huggingface.co/sshh12/Mistral-7B-LoRA-DocumentGTE-260K-x128) | **Long Document** <br/> <br/> Encode a document as a series of `<document>` and with `documents`. | ⚠️📚 A compression model pretrained on wikipedia and finetuned on LongAlpaca and Long-Data-Collections. Compresses chunks of 512 tokens into only 4 using [gte-large](https://huggingface.co/thenlper/gte-large), as expected the results are fairly lossy. <br/><br/> Compute: ~50 A6000 hours|
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-ImageBind-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-ImageBind-LLAVA) | **ImageBind (Vision/Audio/Text)** <br/> <br/> Encode audio or image filenames as `<imagebind>` and with `imagebinds`. | ⚠️🖼️🔊📚 A model pretrained and finetuned on an augmented LLaVA dataset. Might hallucinate colors from audio and needs explicit mention of if the input is a sound/image/document. <br/><br/> Compute: ~180 4090 hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⭐🖼️ A model pretrained and finetuned on the LLaVA dataset. This should be comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA) and [LLaVA 1.5](https://llava-vl.github.io/). <br/><br/> Compute: ~160 3090 Ti hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⚠️🖼️ This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. <br/><br/> Compute: ~10 3090 Ti hours |
+
+⭐ = Seems OK, ⚠️ = Proof of concept, experimental
 
 ### Vision (LLaVA-equivalent)
 
@@ -62,7 +65,6 @@ requests.post(
 python scripts/serve_model.py \
     --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
     --model_lora_path sshh12/Mistral-7B-LoRA-ImageBind-LLAVA \
-    --load_bits 4 \
     --port 7860
 ```
 
@@ -76,6 +78,34 @@ requests.post(
 ).json()
 # {'output': 'The animal in this sound is a dog.'}
 ```
+
+### Long Documents
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path sshh12/Mistral-7B-LoRA-DocumentGTE-260K-x128 \
+    --port 7860
+```
+
+```python
+from multi_token.modalities.document_gte import (
+    split_text_into_documents,
+)
+
+with open(".demo/llava-paper.txt", "r") as f:
+	docs = split_text_into_documents(f.read())
+
+requests.post(
+    "http://localhost:7860/generate",
+    json={
+        "messages": [{"role": "user", "content": "Read the paper " + "<document>" * len(docs) + ". Give me a summary."}],
+        "documents": docs,
+    },
+).json()
+# {'output': 'Here is a summary of the key points from the paper:\n\n- The paper proposes a new dataset called LAML, which contains 100,000 image-text pairs with 100 different languages. The dataset aims to provide a large-scale resource for training multilingual vision-language models.\n\n- The authors find that existing multilingual vision-language models struggle to generate high-quality captions for images in languages they have not seen before. This is because the models lack the ability to generate language-specific knowledge...'}
+```
+
 
 ### Ideas
 
