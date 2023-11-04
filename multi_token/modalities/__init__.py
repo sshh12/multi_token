@@ -6,5 +6,5 @@ MODALITY_BUILDERS = {
     "vision_clip": lambda: [CLIPVisionModality()],
     "imagebind": lambda: [ImageBindModality()],
     "document_gte": lambda: [DocumentGPTModality()],
-    "document_gte_x8": lambda: [DocumentGPTModality(num_tokens_output=128)],
+    "document_gte_x8": lambda: [DocumentGPTModality(num_tokens_output=64)],
 }
