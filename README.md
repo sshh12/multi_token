@@ -94,7 +94,7 @@ from multi_token.modalities.document_gte import (
 )
 
 with open(".demo/llava-paper.txt", "r") as f:
-	docs = split_text_into_documents(f.read())
+    docs = split_text_into_documents(f.read())
 
 requests.post(
     "http://localhost:7860/generate",
