@@ -41,6 +41,10 @@ These are weights for a version of `{base_model}` finetuned for multimodal appli
 
 {modalities}
 
+### Usage
+
+GitHub: https://github.com/sshh12/multi_token (includes training scripts and basic inference server)
+
 ### Dataset
 
 {dataset} ({num_examples} examples)
@@ -54,10 +58,6 @@ These are weights for a version of `{base_model}` finetuned for multimodal appli
 ```
 {training_devices_dump}
 ```
-
-### Usage
-
-GitHub: https://github.com/sshh12/multi_token
 
 
 ### Model
