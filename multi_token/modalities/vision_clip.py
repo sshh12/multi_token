@@ -47,7 +47,9 @@ class CLIPVisionModule(nn.Module):
             image_forward_outs = self.image_model(
                 images.to(device=self.device, dtype=self.dtype),
             )
-            image_features = image_forward_outs.pooler_output.to(images.dtype)
+            image_features = image_forward_outs.pooler_output.to(images.dtype).view(
+                -1, 1, OUTPUT_EMB_SIZE
+            )
         return image_features
 
     @property
