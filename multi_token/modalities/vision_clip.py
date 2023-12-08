@@ -6,14 +6,21 @@ from transformers import CLIPVisionModel, CLIPImageProcessor
 from PIL import Image
 
 from multi_token.modalities.base_modality import Modality
-from multi_token.modalities.projectors import build_patch_mlp_projector
+from multi_token.modalities.projectors import (
+    build_patch_mlp_projector,
+    build_mlp_vector_projector,
+)
 from multi_token.data_tools import load_image
+
+PATCH_LAYER = -2
+OUTPUT_LAYER = -1
+OUTPUT_EMB_SIZE = 1024
 
 
 class CLIPVisionModule(nn.Module):
-    def __init__(self, model_name_or_path: str):
+    def __init__(self, model_name_or_path: str, feature_layer: int = PATCH_LAYER):
         super().__init__()
-        self.feature_layer = -2
+        self.feature_layer = feature_layer
         self.model_name_or_path = model_name_or_path
         self.image_processor = None
         self.image_model = None
@@ -29,12 +36,18 @@ class CLIPVisionModule(nn.Module):
 
     @torch.no_grad()
     def forward(self, images) -> torch.Tensor:
-        image_forward_outs = self.image_model(
-            images.to(device=self.device, dtype=self.dtype),
-            output_hidden_states=True,
-        )
-        image_features = image_forward_outs.hidden_states[self.feature_layer]
-        image_features = image_features[:, 1:].to(images.dtype)
+        if self.feature_layer == PATCH_LAYER:
+            image_forward_outs = self.image_model(
+                images.to(device=self.device, dtype=self.dtype),
+                output_hidden_states=True,
+            )
+            image_features = image_forward_outs.hidden_states[self.feature_layer]
+            image_features = image_features[:, 1:].to(images.dtype)
+        else:
+            image_forward_outs = self.image_model(
+                images.to(device=self.device, dtype=self.dtype),
+            )
+            image_features = image_forward_outs.pooler_output.to(images.dtype)
         return image_features
 
     @property
@@ -78,18 +91,39 @@ class CLIPVisionModality(Modality):
         model_name_or_path: str = "openai/clip-vit-large-patch14-336",
         pad_non_square_images: bool = False,
         num_projector_layers: int = 2,
+        feature_layer: int = PATCH_LAYER,
+        num_tokens_output: Optional[int] = None,
     ):
+        if feature_layer not in [PATCH_LAYER, OUTPUT_LAYER]:
+            raise ValueError(
+                f"feature_layer must be one of {PATCH_LAYER} or {OUTPUT_LAYER}"
+            )
+        if (feature_layer == PATCH_LAYER) != (num_tokens_output is None):
+            raise ValueError(
+                "num_tokens_output must be None if feature_layer is PATCH_LAYER"
+            )
         self.model_name_or_path = model_name_or_path
-        self.module = CLIPVisionModule(model_name_or_path=self.model_name_or_path)
+        self.module = CLIPVisionModule(
+            model_name_or_path=self.model_name_or_path, feature_layer=feature_layer
+        )
         self.pad_non_square_images = pad_non_square_images
         self.num_projector_layers = num_projector_layers
+        self.num_tokens_output = num_tokens_output
 
     def build_projector(self, lm_hidden_size: int) -> nn.Module:
-        return build_patch_mlp_projector(
-            self.module.hidden_size,
-            lm_hidden_size,
-            num_layers=self.num_projector_layers,
-        )
+        if self.module.feature_layer == PATCH_LAYER:
+            return build_patch_mlp_projector(
+                self.module.hidden_size,
+                lm_hidden_size,
+                num_layers=self.num_projector_layers,
+            )
+        else:
+            return build_mlp_vector_projector(
+                input_hidden_size=OUTPUT_EMB_SIZE,
+                lm_hidden_size=lm_hidden_size,
+                num_layers=self.num_projector_layers,
+                num_tokens=self.num_tokens_output,
+            )
 
     @property
     def name(self) -> str:
@@ -105,7 +139,10 @@ class CLIPVisionModality(Modality):
 
     @property
     def token_width(self) -> int:
-        return self.module.num_patches
+        if self.module.feature_layer == PATCH_LAYER:
+            return self.module.num_patches
+        else:
+            return 0
 
     def to(self, dtype: torch.dtype, device: torch.device) -> "CLIPVisionModality":
         self.module.to(dtype=dtype, device=device)

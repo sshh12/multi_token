@@ -4,6 +4,8 @@ import logging
 import subprocess
 import pathlib
 import torch
+import shutil
+import glob
 import os
 
 import transformers
@@ -124,6 +126,8 @@ class LMMTrainer(Trainer):
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         self._save_extras(output_dir)
         super(LMMTrainer, self)._save(output_dir, state_dict)
+        for unused_dir in glob.iglob(os.path.join(output_dir, "global_step*")):
+            shutil.rmtree(unused_dir)
 
     def _save_extras(self, output_dir: Optional[str] = None):
         self.model.config.save_pretrained(output_dir)

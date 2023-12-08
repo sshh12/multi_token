@@ -1,30 +1,23 @@
 from huggingface_hub import snapshot_download
 import argparse
-import subprocess
 import os
 import glob
-from zipfile import ZipFile
+import tqdm
 
 
 def main(output_dir):
     os.makedirs(output_dir, exist_ok=True)
     dl_path = snapshot_download(repo_id="biglab/webui-all", repo_type="dataset")
 
-    combined_zip_path = os.path.join(output_dir, "webui-all-full.zip")
+    combined_zip_path = os.path.join(output_dir, "webui-merged.zip")
     if not os.path.exists(combined_zip_path):
         part_paths = sorted(glob.glob(os.path.join(dl_path, "*.zip.*")))
         print("Merging...", len(part_paths), "parts")
-        subprocess.check_output(
-            [
-                "sh",
-                "-c",
-                "cat " + " ".join(part_paths) + " > " + combined_zip_path,
-            ]
-        )
+        with open(combined_zip_path, "wb") as merged_fp:
+            for fn in tqdm.tqdm(part_paths):
+                with open(fn, "rb") as part_fp:
+                    merged_fp.write(part_fp.read())
     print(combined_zip_path)
-    with ZipFile(combined_zip_path) as myzip:
-        # show files
-        print(myzip.namelist())
 
 
 if __name__ == "__main__":
