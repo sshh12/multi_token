@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Union
 from collections import Counter
 import contextlib
 import tempfile
@@ -110,3 +110,25 @@ def with_local_files(fn_or_urls: List[Any]):
     finally:
         for fp in fps:
             fp.close()
+
+
+def load_audio(fn_or_url_or_array: Union[Dict, str]) -> Dict:
+    import soundfile as sf
+
+    if isinstance(fn_or_url_or_array, dict) and "array" in fn_or_url_or_array:
+        return fn_or_url_or_array
+
+    if isinstance(fn_or_url_or_array, str):
+        fn_or_url = fn_or_url_or_array
+    else:
+        fn_or_url = fn_or_url_or_array.get("url", fn_or_url_or_array.get("path"))
+
+    with with_local_files([fn_or_url]) as local_fns:
+        audio_data, sample_rate = sf.read(local_fns[0])
+
+    if audio_data.ndim == 2:
+        audio_data = audio_data.mean(axis=1)
+
+    audio_data = list(audio_data)
+
+    return {"array": audio_data, "sample_rate": sample_rate}

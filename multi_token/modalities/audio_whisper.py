@@ -1,10 +1,10 @@
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 
 import torch
 import torch.nn as nn
 from transformers import AutoFeatureExtractor, WhisperModel
-from PIL import Image
 
+from multi_token.data_tools import load_audio
 from multi_token.modalities.base_modality import Modality
 from multi_token.modalities.projectors import (
     build_mlp_vector_projector,
@@ -99,6 +99,7 @@ class WhisperAudioModality(Modality):
         for row in rows:
             audios = []
             for audio_dict in row[self.data_key]:
+                audio_dict = load_audio(audio_dict)
                 audio_processed = self.module.feature_extractor(
                     audio_dict["array"],
                     return_tensors="pt",

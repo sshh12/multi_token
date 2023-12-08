@@ -49,16 +49,12 @@ def _write_convo(row) -> List:
 
 def main(args):
     audio_dataset = load_dataset(
-        "mozilla-foundation/common_voice_11_0", "en", split="train"
+        "mozilla-foundation/common_voice_11_0", "en", split="train", streaming=True
     )
-
-    idxs = list(range(len(audio_dataset)))
-    random.shuffle(idxs)
 
     def gen():
         i = 0
-        for idx in idxs:
-            row = audio_dataset[idx]
+        for row in audio_dataset:
             try:
                 yield _write_convo(row)
             except ValueError:
