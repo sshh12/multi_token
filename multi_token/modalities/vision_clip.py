@@ -142,7 +142,7 @@ class CLIPVisionModality(Modality):
         if self.module.feature_layer == PATCH_LAYER:
             return self.module.num_patches
         else:
-            return 0
+            return self.num_tokens_output
 
     def to(self, dtype: torch.dtype, device: torch.device) -> "CLIPVisionModality":
         self.module.to(dtype=dtype, device=device)
