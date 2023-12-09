@@ -49,7 +49,10 @@ def _write_convo(row) -> List:
 
 def main(args):
     audio_dataset = load_dataset(
-        "mozilla-foundation/common_voice_11_0", "en", split="train", streaming=True
+        "mozilla-foundation/common_voice_15_0",
+        "en",
+        split="train",
+        streaming=True,
     )
 
     def gen():
@@ -71,6 +74,6 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--output_folder", type=str)
-    parser.add_argument("-n", "--max_examples", type=int, default=1_000_000)
+    parser.add_argument("-n", "--max_examples", type=int, default=200_000)
     args = parser.parse_args()
     main(args)
