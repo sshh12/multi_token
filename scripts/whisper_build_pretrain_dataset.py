@@ -52,7 +52,6 @@ def main(args):
         "mozilla-foundation/common_voice_15_0",
         "en",
         split="train",
-        streaming=True,
     )
 
     def gen():
