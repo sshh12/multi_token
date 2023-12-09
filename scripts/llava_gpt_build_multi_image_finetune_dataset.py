@@ -1,6 +1,7 @@
 from typing import List
 import argparse
 import json
+import os
 import random
 import openai
 
@@ -15,6 +16,8 @@ Here are the images you can see:
 {captions}
 
 {question}
+
+Include the question and answer.
 """
 
 QUESTIONS = [
@@ -43,9 +46,11 @@ OPENAI_TOOLS = [
                 "properties": {
                     "question": {
                         "type": "string",
+                        "description": "The question, must be provided",
                     },
                     "answer": {
                         "type": "string",
+                        "description": "The answer to the question, must be provided",
                     },
                 },
                 "required": ["question", "answer"],
@@ -75,6 +80,8 @@ def _build_convo(pretrain_examples) -> List:
         tool_choice={"type": "function", "function": {"name": "create_chat"}},
     )
     resp = json.loads(completion.choices[0].message.tool_calls[0].function.arguments)
+    if "answer" not in resp:
+        print(resp)
     q = resp["question"]
     a = resp["answer"]
 
@@ -101,21 +108,35 @@ def _build_convo(pretrain_examples) -> List:
 
 def main(args):
     data = load_dataset("sshh12/llava-pretrain", split="train", data_files="*.arrow")
+    data_idxs = list(range(len(data)))
 
-    idxs = list(range(len(data)))
+    os.makedirs(args.cache_folder, exist_ok=True)
 
-    def gen():
-        for _ in range(args.num_examples):
-            k = random.randint(1, args.max_images)
-            selected_idxs = random.sample(idxs, k=k)
+    def gen(seeds):
+        r = random.Random(seeds[0])
+        cache = open(
+            os.path.join(args.cache_folder, f"gpt-cache.{seeds[0]}.jsonl"), "a"
+        )
+        i = 0
+        while i < len(seeds):
+            k = r.randint(1, args.max_images)
+            selected_idxs = r.sample(data_idxs, k=k)
             selected_examples = [data[i] for i in selected_idxs]
             try:
-                yield _build_convo(selected_examples)
+                example = _build_convo(selected_examples)
+                cache.write(json.dumps(example) + "\n")
+                yield example
+                i += 1
             except Exception as e:
                 print(e)
                 continue
+        cache.close()
 
-    ds = Dataset.from_generator(gen)
+    ds = Dataset.from_generator(
+        gen,
+        num_proc=args.num_proc,
+        gen_kwargs={"seeds": list(range(args.num_examples))},
+    )
     ds.save_to_disk(args.output_folder)
 
 
@@ -127,7 +148,14 @@ if __name__ == "__main__":
         type=str,
         default="/data/llava-gpt-multi-image-finetune",
     )
+    parser.add_argument(
+        "-c",
+        "--cache_folder",
+        type=str,
+        default="/data/llava-gpt-multi-image-finetune-cache",
+    )
     parser.add_argument("-n", "--num_examples", type=int, default=200_000)
     parser.add_argument("-m", "--max_images", type=int, default=6)
+    parser.add_argument("-p", "--num_proc", type=int, default=10)
     args = parser.parse_args()
     main(args)

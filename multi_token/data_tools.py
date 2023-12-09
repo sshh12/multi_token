@@ -112,8 +112,11 @@ def with_local_files(fn_or_urls: List[Any]):
             fp.close()
 
 
-def load_audio(fn_or_url_or_array: Union[Dict, str]) -> Dict:
+def load_audio(
+    fn_or_url_or_array: Union[Dict, str], target_sampling_rate: int = None
+) -> Dict:
     import soundfile as sf
+    import librosa
 
     if isinstance(fn_or_url_or_array, dict) and "array" in fn_or_url_or_array:
         return fn_or_url_or_array
@@ -129,6 +132,12 @@ def load_audio(fn_or_url_or_array: Union[Dict, str]) -> Dict:
     if audio_data.ndim == 2:
         audio_data = audio_data.mean(axis=1)
 
+    if target_sampling_rate is not None and sample_rate != target_sampling_rate:
+        audio_data = librosa.resample(
+            audio_data, orig_sr=sample_rate, target_sr=target_sampling_rate
+        )
+        sample_rate = target_sampling_rate
+
     audio_data = list(audio_data)
 
-    return {"array": audio_data, "sample_rate": sample_rate}
+    return {"array": audio_data, "sampling_rate": sample_rate}

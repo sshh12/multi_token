@@ -5,6 +5,7 @@ from multi_token.modalities.vision_clip import (
 from multi_token.modalities.imagebind import ImageBindModality
 from multi_token.modalities.document_gte import DocumentGPTModality
 from multi_token.modalities.audio_whisper import WhisperAudioModality
+from multi_token.modalities.audio_clap import CLAPAudioModality
 
 MODALITY_BUILDERS = {
     "vision_clip": lambda: [CLIPVisionModality()],
@@ -12,6 +13,7 @@ MODALITY_BUILDERS = {
         CLIPVisionModality(feature_layer=CLIP_POOL_LAYER, num_tokens_output=10)
     ],
     "audio_whisper": lambda: [WhisperAudioModality(num_tokens_output=10)],
+    "audio_clap": lambda: [CLAPAudioModality(num_tokens_output=5)],
     "imagebind": lambda: [ImageBindModality()],
     "document_gte": lambda: [DocumentGPTModality()],
     "document_gte_x16": lambda: [DocumentGPTModality(num_tokens_output=32)],
