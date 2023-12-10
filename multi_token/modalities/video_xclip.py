@@ -31,9 +31,7 @@ class XCLIPVideoModule(nn.Module):
     @torch.no_grad()
     def forward(self, video_inputs) -> torch.Tensor:
         with torch.no_grad():
-            outputs = self.model(
-                **(video_inputs.to(device=self.device, dtype=self.dtype))
-            )
+            outputs = self.model(**(video_inputs.to(device=self.device)))
 
         emb = outputs.video_embeds.to(device=self.device, dtype=self.dtype).view(
             -1, 1, OUTPUT_EMB_SIZE
