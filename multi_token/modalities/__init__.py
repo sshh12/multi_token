@@ -13,7 +13,11 @@ MODALITY_BUILDERS = {
     "vision_clip_pool": lambda: [
         CLIPVisionModality(feature_layer=CLIP_POOL_LAYER, num_tokens_output=10)
     ],
-    "audio_whisper": lambda: [WhisperAudioModality(num_tokens_output=10)],
+    "audio_whisper": lambda: [
+        WhisperAudioModality(
+            num_tokens_output=10, model_name_or_path="openai/whisper-small"
+        )
+    ],
     "audio_clap": lambda: [CLAPAudioModality(num_tokens_output=5)],
     "video_xclip": lambda: [XCLIPVideoModality(num_tokens_output=10)],
     "imagebind": lambda: [ImageBindModality()],
