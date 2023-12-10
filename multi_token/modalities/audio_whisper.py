@@ -11,7 +11,7 @@ from multi_token.modalities.projectors import (
 )
 
 
-OUTPUT_EMB_SIZE = 1280
+OUTPUT_EMB_SIZE = 768
 
 
 class WhisperAudioModule(nn.Module):
