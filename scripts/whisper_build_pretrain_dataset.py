@@ -7,6 +7,10 @@ from datasets import Dataset
 
 from multi_token.constants import ROLE_ASSISTANT, ROLE_USER
 
+DATASET_ARGS = dict(
+    path="mozilla-foundation/common_voice_15_0", name="en", split="train"
+)
+
 PRETRAIN_PHRASES = [
     "Repeat the content of the audio <speech>",
     "Transcribe <speech>",
@@ -27,11 +31,9 @@ PRETRAIN_PHRASES = [
 ]
 
 
-def _write_convo(row) -> List:
-    audio = dict(row["audio"])
-    audio.pop("path")
+def _write_convo(idx, row) -> List:
     example = {
-        "speech_audios": [audio],
+        "speech_audios": [{"dataset_args": DATASET_ARGS, "idx": idx}],
     }
     phrase = random.choice(PRETRAIN_PHRASES)
     example["messages"] = [
@@ -44,21 +46,18 @@ def _write_convo(row) -> List:
             "content": row["text"] if "text" in row else row["sentence"],
         },
     ]
+    print(example)
     return example
 
 
 def main(args):
-    audio_dataset = load_dataset(
-        "mozilla-foundation/common_voice_15_0",
-        "en",
-        split="train",
-    )
+    audio_dataset = load_dataset(**DATASET_ARGS)
 
     def gen():
         i = 0
-        for row in audio_dataset:
+        for k in range(len(audio_dataset)):
             try:
-                yield _write_convo(row)
+                yield _write_convo(k, audio_dataset[k])
             except ValueError:
                 pass
             else:

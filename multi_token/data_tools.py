@@ -1,8 +1,9 @@
-from typing import Dict, List, Any, Union
+from typing import Dict, List, Any, Union, Optional
 from collections import Counter
 import contextlib
 import tempfile
 import shutil
+import subprocess
 import re
 import io
 import os
@@ -10,6 +11,7 @@ import os
 import torch
 import requests
 import transformers
+import numpy as np
 from PIL import Image
 
 from multi_token.constants import IGNORE_INDEX
@@ -92,7 +94,7 @@ def with_local_files(fn_or_urls: List[Any]):
     fps = []
     for fn_or_url in fn_or_urls:
         if isinstance(fn_or_url, Image.Image):
-            fp = tempfile.NamedTemporaryFile(suffix=suffix, mode="wb")
+            fp = tempfile.NamedTemporaryFile(suffix=".png", mode="wb")
             fn_or_url.convert("RGB").save(fp)
             fps.append(fp)
             local_fns.append(fp.name)
@@ -112,32 +114,114 @@ def with_local_files(fn_or_urls: List[Any]):
             fp.close()
 
 
-def load_audio(
-    fn_or_url_or_array: Union[Dict, str], target_sampling_rate: int = None
-) -> Dict:
+def load_audio(input_: Union[Dict, str], target_sampling_rate: int = None) -> Dict:
     import soundfile as sf
     import librosa
 
-    if isinstance(fn_or_url_or_array, dict) and "array" in fn_or_url_or_array:
-        return fn_or_url_or_array
-
-    if isinstance(fn_or_url_or_array, str):
-        fn_or_url = fn_or_url_or_array
+    if isinstance(input_, dict) and "array" in input_ and "sampling_rate" in input_:
+        array = input_["array"]
+        sampling_rate = input_["sampling_rate"]
+    elif isinstance(input_, dict) and "path" in input_:
+        with with_local_files([input_["path"]]) as local_fns:
+            array, sampling_rate = sf.read(local_fns[0])
+    elif isinstance(input_, str):
+        with with_local_files([input_]) as local_fns:
+            array, sampling_rate = sf.read(local_fns[0])
     else:
-        fn_or_url = fn_or_url_or_array.get("url", fn_or_url_or_array.get("path"))
+        raise ValueError(f"Could not load audio from {input_}")
 
-    with with_local_files([fn_or_url]) as local_fns:
-        audio_data, sample_rate = sf.read(local_fns[0])
+    if array.ndim == 2:
+        array = array.mean(axis=1)
 
-    if audio_data.ndim == 2:
-        audio_data = audio_data.mean(axis=1)
-
-    if target_sampling_rate is not None and sample_rate != target_sampling_rate:
-        audio_data = librosa.resample(
-            audio_data, orig_sr=sample_rate, target_sr=target_sampling_rate
+    if target_sampling_rate is not None and sampling_rate != target_sampling_rate:
+        array = librosa.resample(
+            array, orig_sr=sampling_rate, target_sr=target_sampling_rate
         )
-        sample_rate = target_sampling_rate
+        sampling_rate = target_sampling_rate
 
-    audio_data = list(audio_data)
+    return {"array": list(array), "sampling_rate": sampling_rate}
 
-    return {"array": audio_data, "sampling_rate": sample_rate}
+
+def _download_yt_video(url: str) -> str:
+    from pytube import YouTube
+
+    youtube = YouTube(url)
+    video = youtube.streams.first()
+    file_path = video.download(tempfile.gettempdir())
+
+    return file_path
+
+
+def _read_video_pyav(container, indices):
+    frames = []
+    container.seek(0)
+    start_index = indices[0]
+    end_index = indices[-1]
+    for i, frame in enumerate(container.decode(video=0)):
+        if i > end_index:
+            break
+        if i >= start_index and i in indices:
+            frames.append(frame)
+    return np.stack([x.to_ndarray(format="rgb24") for x in frames])
+
+
+def _sample_frame_indices(clip_len, frame_sample_rate, seg_len):
+    converted_len = int(clip_len * frame_sample_rate)
+    end_idx = np.random.randint(converted_len, seg_len)
+    start_idx = end_idx - converted_len
+    indices = np.linspace(start_idx, end_idx, num=clip_len)
+    indices = np.clip(indices, start_idx, end_idx - 1).astype(np.int64)
+    return indices
+
+
+def load_video(
+    input_: str,
+    frames: int = 8,
+    frame_sample_rate: int = 1,
+    start_time: Optional[int] = None,
+    end_time: Optional[int] = None,
+) -> np.ndarray:
+    import av
+
+    delete_file = False
+
+    if isinstance(input_, str) and "youtube.com" in input_:
+        file_path = _download_yt_video(input_)
+        delete_file = True
+    elif isinstance(input_, str):
+        file_path = input_
+    else:
+        raise ValueError(f"Could not load video from {input_}")
+
+    if start_time is not None or end_time is not None:
+        start_time = start_time if start_time is not None else 0
+        end_time = end_time if end_time is not None else "end"
+        trim_file_path = f"{file_path.rsplit('.', 1)[0]}_trimmed.mp4"
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-i",
+                file_path,
+                "-ss",
+                str(start_time),
+                "-to",
+                str(end_time),
+                "-c",
+                "copy",
+                trim_file_path,
+            ]
+        )
+        file_path = trim_file_path
+
+    container = av.open(file_path)
+    indices = _sample_frame_indices(
+        clip_len=frames,
+        frame_sample_rate=frame_sample_rate,
+        seg_len=container.streams.video[0].frames,
+    )
+    video = _read_video_pyav(container, indices)
+
+    if delete_file:
+        os.remove(file_path)
+
+    return video
