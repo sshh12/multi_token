@@ -66,7 +66,7 @@ class DocumentGTEModule(nn.Module):
         return GTE_EMBEDDING_SIZE
 
 
-class DocumentGPTModality(Modality):
+class DocumentGTEModality(Modality):
     def __init__(
         self,
         model_name_or_path: str = GTE_DEFAULT_MODEL,
@@ -106,7 +106,7 @@ class DocumentGPTModality(Modality):
     def token_width(self) -> int:
         return self.num_tokens_output
 
-    def to(self, dtype: torch.dtype, device: torch.device) -> "DocumentGPTModality":
+    def to(self, dtype: torch.dtype, device: torch.device) -> "DocumentGTEModality":
         self.dtype = dtype
         self.device = device
         if DOCUMENT_GTE_FORCE_CPU not in os.environ:

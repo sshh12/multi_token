@@ -46,7 +46,6 @@ def _write_convo(idx, row) -> List:
             "content": row["text"] if "text" in row else row["sentence"],
         },
     ]
-    print(example)
     return example
 
 
@@ -55,7 +54,9 @@ def main(args):
 
     def gen():
         i = 0
-        for k in range(len(audio_dataset)):
+        idxes = list(range(len(audio_dataset)))
+        random.shuffle(idxes)
+        for k in idxes:
             try:
                 yield _write_convo(k, audio_dataset[k])
             except ValueError:

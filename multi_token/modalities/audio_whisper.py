@@ -39,7 +39,7 @@ class WhisperAudioModule(nn.Module):
             )
             last_hidden_state = self.model(
                 audios[i].to(device=self.device, dtype=self.dtype),
-                decoder_input_ids=decoder_input_ids,
+                decoder_input_ids=decoder_input_ids.to(device=self.device),
             ).last_hidden_state
             hidden_states.append(last_hidden_state)
         last_hidden_state = torch.stack(hidden_states)
@@ -99,7 +99,10 @@ class WhisperAudioModality(Modality):
         for row in rows:
             audios = []
             for audio_dict in row[self.data_key]:
-                audio_dict = load_audio(audio_dict)
+                audio_dict = load_audio(
+                    audio_dict,
+                    target_sampling_rate=self.module.feature_extractor.sampling_rate,
+                )
                 audio_processed = self.module.feature_extractor(
                     audio_dict["array"],
                     return_tensors="pt",

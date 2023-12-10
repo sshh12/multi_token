@@ -107,13 +107,6 @@ requests.post(
 # {'output': 'Here is a summary of the key points from the paper:\n\n- The paper proposes a new dataset called LAML, which contains 100,000 image-text pairs with 100 different languages. The dataset aims to provide a large-scale resource for training multilingual vision-language models.\n\n- The authors find that existing multilingual vision-language models struggle to generate high-quality captions for images in languages they have not seen before. This is because the models lack the ability to generate language-specific knowledge...'}
 ```
 
-
-### Ideas
-
-Some other ideas I want to try to implement at some point:
-* **WhisperTranscriptModality**: encode voice audio so you can do things like `Answer the question asked in <audio>`. Given additional metadata like the speaker tone, accent, etc. this could be trained to personalize the response in a way that chat-based Q&A can't.
-* **MultiImage Q&A**: train a version of VisionClipModality (aka LLaVA) that takes multiple images inputs and answers questions
-
 ## Training
 
 ### Add a Modality

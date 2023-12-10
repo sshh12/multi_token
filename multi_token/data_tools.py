@@ -1,9 +1,11 @@
 from typing import Dict, List, Any, Union, Optional
 from collections import Counter
+from functools import cache
 import contextlib
 import tempfile
 import shutil
 import subprocess
+import json
 import re
 import io
 import os
@@ -12,6 +14,7 @@ import torch
 import requests
 import transformers
 import numpy as np
+from datasets import load_dataset, Dataset
 from PIL import Image
 
 from multi_token.constants import IGNORE_INDEX
@@ -22,8 +25,6 @@ def encode_chat(
     tokenizer: transformers.PreTrainedTokenizer,
     modalities: List["Modality"],
 ) -> Dict:
-    from multi_token.modalities.base_modality import Modality
-
     messages = list(item["messages"])
     chat_as_string = tokenizer.apply_chat_template(messages, tokenize=False)
 
@@ -114,6 +115,15 @@ def with_local_files(fn_or_urls: List[Any]):
             fp.close()
 
 
+@cache
+def _get_dataset(dataset_args: str) -> Dataset:
+    return load_dataset(**json.loads(dataset_args))
+
+
+def get_dataset_cached(dataset_args: Dict) -> Dataset:
+    return _get_dataset(json.dumps(dataset_args))
+
+
 def load_audio(input_: Union[Dict, str], target_sampling_rate: int = None) -> Dict:
     import soundfile as sf
     import librosa
@@ -121,6 +131,10 @@ def load_audio(input_: Union[Dict, str], target_sampling_rate: int = None) -> Di
     if isinstance(input_, dict) and "array" in input_ and "sampling_rate" in input_:
         array = input_["array"]
         sampling_rate = input_["sampling_rate"]
+    elif isinstance(input_, dict) and "dataset_args" in input_:
+        item = get_dataset_cached(input_["dataset_args"])[input_["idx"]]
+        array = item["audio"]["array"]
+        sampling_rate = item["audio"]["sampling_rate"]
     elif isinstance(input_, dict) and "path" in input_:
         with with_local_files([input_["path"]]) as local_fns:
             array, sampling_rate = sf.read(local_fns[0])
