@@ -32,7 +32,10 @@ class CLAPAudioModule(nn.Module):
     def forward(self, audios) -> torch.Tensor:
         embs = []
         for audio_features in audios:
-            features = self.model.get_audio_features(**audio_features)
+            features = self.model.get_audio_features(
+                audio_features=audio_features["audio_features"].to(torch.float32),
+                is_longer=audio_features["is_longer"],
+            )
             embs.append(features)
         embs = torch.stack(embs)
         return embs.view(-1, 1, OUTPUT_EMB_SIZE)
