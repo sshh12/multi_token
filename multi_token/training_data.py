@@ -1,5 +1,6 @@
 from typing import List, Dict, Sequence
 from dataclasses import dataclass, field
+import logging
 import os
 
 from torch.utils.data import Dataset
@@ -45,8 +46,13 @@ class LMMDataset(Dataset):
         return self.dataset[0]
 
     def __getitem__(self, i) -> Dict:
-        item = self.dataset[i]
-        return encode_chat(item, self.tokenizer, self.modalities)
+        try:
+            item = self.dataset[i]
+            return encode_chat(item, self.tokenizer, self.modalities)
+        except Exception as e:
+            new_i = i + 1
+            logging.error(f"Error encoding chat: {e} index={i} trying index={new_i}")
+            return self.__getitem__(new_i)
 
 
 @dataclass
