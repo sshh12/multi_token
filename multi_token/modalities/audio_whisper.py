@@ -57,7 +57,7 @@ class WhisperAudioModule(nn.Module):
 class WhisperAudioModality(Modality):
     def __init__(
         self,
-        model_name_or_path: str = "openai/whisper-large-v3",
+        model_name_or_path: str = "openai/whisper-small",
         num_projector_layers: int = 2,
         num_tokens_output: int = 10,
     ):
