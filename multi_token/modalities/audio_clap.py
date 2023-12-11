@@ -33,7 +33,7 @@ class CLAPAudioModule(nn.Module):
         embs = []
         for audio_features in audios:
             features = self.model.get_audio_features(
-                audio_features=audio_features["audio_features"].to(torch.float32),
+                input_features=audio_features["input_features"].to(torch.float32),
                 is_longer=audio_features["is_longer"],
             )
             embs.append(features)
