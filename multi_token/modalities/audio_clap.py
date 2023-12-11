@@ -57,6 +57,7 @@ class CLAPAudioModality(Modality):
         self.module = CLAPAudioModule(model_name_or_path=self.model_name_or_path)
         self.num_projector_layers = num_projector_layers
         self.num_tokens_output = num_tokens_output
+        self.dtype = torch.float32
 
     def build_projector(self, lm_hidden_size: int) -> nn.Module:
         return build_mlp_vector_projector(
@@ -83,7 +84,8 @@ class CLAPAudioModality(Modality):
         return self.num_tokens_output
 
     def to(self, dtype: torch.dtype, device: torch.device) -> "CLAPAudioModality":
-        self.module.to(dtype=dtype, device=device)
+        self.dtype = dtype
+        self.module.to(device=device)
         return self
 
     def preprocess_rows(self, rows: List[Dict]) -> List[Optional[Dict]]:
@@ -108,5 +110,5 @@ class CLAPAudioModality(Modality):
     def forward(self, encoded_values: List[torch.Tensor]) -> List[torch.Tensor]:
         audio_features = []
         for audio_batch in encoded_values:
-            audio_features.append(self.module.forward(audio_batch))
+            audio_features.append(self.module.forward(audio_batch).to(dtype=self.dtype))
         return audio_features
