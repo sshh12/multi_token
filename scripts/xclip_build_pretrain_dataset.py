@@ -7,7 +7,6 @@ from huggingface_hub import hf_hub_download
 from datasets import Dataset
 
 from multi_token.constants import ROLE_ASSISTANT, ROLE_USER
-from multi_token.data_tools import load_video
 
 PRETRAIN_PHRASES = [
     "Repeat the content of the video <video>",
@@ -40,8 +39,8 @@ def _write_convo(row) -> List:
         "start_time": _timestamp_to_seconds(row["Start_timestamp"]),
         "end_time": _timestamp_to_seconds(row["End_timestamp"]),
     }
-    # test load
-    load_video(video)
+    # test load, jk let it fail
+    # load_video(video)
     example = {
         "videos": [video],
     }
@@ -80,7 +79,7 @@ def main(args):
             except Exception as e:
                 print(e)
 
-    ds = Dataset.from_generator(gen, gen_kwargs={"subset_rows": rows}, num_proc=50)
+    ds = Dataset.from_generator(gen, gen_kwargs={"subset_rows": rows}, num_proc=5)
     ds.save_to_disk(args.output_folder)
 
 
@@ -89,6 +88,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o", "--output_folder", type=str, default="/data/xclip-internvid-pretrain"
     )
-    parser.add_argument("-n", "--max_examples", type=int, default=800_000)
+    parser.add_argument("-n", "--max_examples", type=int, default=500_000)
     args = parser.parse_args()
     main(args)

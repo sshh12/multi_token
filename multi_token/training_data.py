@@ -51,6 +51,8 @@ class LMMDataset(Dataset):
             return encode_chat(item, self.tokenizer, self.modalities)
         except Exception as e:
             new_i = i + 1
+            if new_i >= len(self):
+                new_i = 0
             logging.error(f"Error encoding chat: {e} index={i} trying index={new_i}")
             return self.__getitem__(new_i)
 
