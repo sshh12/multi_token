@@ -199,7 +199,12 @@ def load_video(
 
     delete_file = False
 
-    if isinstance(input_, str) and "youtube.com" in input_:
+    if isinstance(input_, dict) and "youtube.com" and input_.get("url", ""):
+        file_path = _download_yt_video(input_["url"])
+        delete_file = True
+        start_time = input_.get("start_time", None)
+        end_time = input_.get("end_time", None)
+    elif isinstance(input_, str) and "youtube.com" in input_:
         file_path = _download_yt_video(input_)
         delete_file = True
     elif isinstance(input_, str):
