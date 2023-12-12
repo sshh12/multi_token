@@ -4,6 +4,7 @@ from functools import cache
 import contextlib
 import tempfile
 import shutil
+import random
 import subprocess
 import json
 import re
@@ -161,7 +162,9 @@ def _download_yt_video(url: str) -> str:
 
     youtube = YouTube(url)
     video = youtube.streams.first()
-    file_path = video.download(tempfile.gettempdir())
+
+    fn = "".join(random.choices("abcdefghijklmnopqrstuvwxyz", k=10))
+    file_path = video.download(output_path=tempfile.gettempdir(), filename=fn)
 
     return file_path
 
@@ -202,8 +205,8 @@ def load_video(
     if isinstance(input_, dict) and "youtube.com" and input_.get("url", ""):
         file_path = _download_yt_video(input_["url"])
         delete_file = True
-        start_time = input_.get("start_time", None)
-        end_time = input_.get("end_time", None)
+        # start_time = input_.get("start_time", None)
+        # end_time = input_.get("end_time", None)
     elif isinstance(input_, str) and "youtube.com" in input_:
         file_path = _download_yt_video(input_)
         delete_file = True
@@ -215,7 +218,7 @@ def load_video(
     if start_time is not None or end_time is not None:
         start_time = start_time if start_time is not None else 0
         end_time = end_time if end_time is not None else "end"
-        trim_file_path = f"{file_path.rsplit('.', 1)[0]}_trimmed.mp4"
+        trim_file_path = f"{file_path.rsplit('.', 1)[0]}_trim.mp4"
         subprocess.run(
             [
                 "ffmpeg",
