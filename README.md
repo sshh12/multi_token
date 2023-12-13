@@ -37,6 +37,8 @@ pip install flash-attn --no-build-isolation
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⭐🖼️ A model pretrained and finetuned on the LLaVA dataset. This should be comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA) and [LLaVA 1.5](https://llava-vl.github.io/). <br/><br/> Compute: ~160 3090 Ti hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-VisionCLIPPool-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-VisionCLIPPool-LLAVA) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⭐🖼️ A model pretrained and finetuned on the LLaVA dataset. This should be comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA) and [LLaVA 1.5](https://llava-vl.github.io/). Uses the last layer of CLIP encoded as 10-tokens (rather than the orignal 576). <br/><br/> Compute: ~100 A6000 hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⚠️🖼️ This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. <br/><br/> Compute: ~10 3090 Ti hours |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-AudioWhisper](https://huggingface.co/sshh12/Mistral-7B-LoRA-AudioWhisper) | **Audio (Speech)** <br/> <br/> Encode images as `<speech>` and with `speech_audios`. | ⚠️🔊 A model pretrained on commonvoice and finetuned on a GPT3.5 synthetic dataset. This pretty undertrained and isn't that great (also based on whisper-small) but it kind of works. <br/><br/> Compute: ~60 A6000 hours|
+
 
 ⭐ = Seems OK, ⚠️ = Proof of concept, experimental
 
@@ -59,6 +61,26 @@ requests.post(
     },
 ).json()
 # {'output': 'When visiting this place, which is a lake with a wooden dock, there are a few things to be cautious about. First, be aware of the water depth and the presence of any hidden obstacles, such as rocks or underwater debris, that could pose a risk to your safety. Second, be mindful of the weather conditions, as sudden changes in weather can make the water unpredictable and potentially dangerous. Lastly, be cautious of any wildlife or marine life in the area, as they may pose a threat to your safety or cause damage to the dock.'}
+```
+
+### Speech
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path sshh12/Mistral-7B-LoRA-AudioWhisper \
+    --port 7860
+```
+
+```python
+requests.post(
+    "http://localhost:7860/generate",
+    json={
+        "messages": [{"role": "user", "content": "What is being said? <speech>"}],
+        "speech_audios": ["https://github.com/sshh12/multi_token/raw/main/.demo/test.mp3"],
+    },
+).json()
+# {'output': 'This is a test.'}
 ```
 
 ### ImageBind (Vision/Audio/Text)
