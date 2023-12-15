@@ -6,7 +6,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="multi_token",
-    version="0.0.3",
+    version="0.0.4",
     description="",
     url="https://github.com/sshh12/multi_token",
     author="Shrivu Shankar",

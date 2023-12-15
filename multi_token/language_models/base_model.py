@@ -79,7 +79,9 @@ class LMMMetaForCausalLM(ABC):
                     for mp_val in mp_vals
                 ), (
                     "Modality tensors have incorrect shape, check your projector implementation "
-                    + str(mp_vals[0].shape)
+                    + str([mp_val.shape[1:] for mp_val in mp_vals])
+                    + " vs expected "
+                    + str((m.token_width, self.config.hidden_size))
                 )
                 projected_tensors.append(mp_vals)
 

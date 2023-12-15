@@ -31,14 +31,22 @@ pip install flash-attn --no-build-isolation
 
 | Base Model                                                | Model | Modality | Notes |
 | - | - | - | - |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-DocumentGTE-16K-x8](https://huggingface.co/sshh12/Mistral-7B-LoRA-DocumentGTE-16K-x8) | **Long Document** <br/> <br/> Encode a document as a series of `<document>` and with `documents`. | ⚠️📚 A compression model pretrained on wikipedia and finetuned on LongAlpaca and Long-Data-Collections. Compresses chunks of 512 tokens into 64 using [gte-large](https://huggingface.co/thenlper/gte-large), as expected the results are fairly lossy. It performs similarly to the x128 version suggesting the bottleneck is the embedding model itself. <br/><br/> Compute: ~100 A6000 hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-DocumentGTE-260K-x128](https://huggingface.co/sshh12/Mistral-7B-LoRA-DocumentGTE-260K-x128) | **Long Document** <br/> <br/> Encode a document as a series of `<document>` and with `documents`. | ⚠️📚 A compression model pretrained on wikipedia and finetuned on LongAlpaca and Long-Data-Collections. Compresses chunks of 512 tokens into only 4 using [gte-large](https://huggingface.co/thenlper/gte-large), as expected the results are fairly lossy. <br/><br/> Compute: ~50 A6000 hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-ImageBind-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-ImageBind-LLAVA) | **ImageBind (Vision/Audio/Text)** <br/> <br/> Encode audio or image filenames as `<imagebind>` and with `imagebinds`. | ⚠️🖼️🔊📚 A model pretrained and finetuned on an augmented LLaVA dataset. Might hallucinate colors from audio and needs explicit mention of if the input is a sound/image/document. <br/><br/> Compute: ~180 4090 hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-VisionCLIP-LLAVA) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⭐🖼️ A model pretrained and finetuned on the LLaVA dataset. This should be comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA) and [LLaVA 1.5](https://llava-vl.github.io/). <br/><br/> Compute: ~160 3090 Ti hours|
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-VisionCLIPPool-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-VisionCLIPPool-LLAVA) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⭐🖼️ A model pretrained and finetuned on the LLaVA dataset. This should be comparable to [BakLLaVA](https://github.com/SkunkworksAI/BakLLaVA) and [LLaVA 1.5](https://llava-vl.github.io/). Uses the last layer of CLIP encoded as 10-tokens (rather than the orignal 576). <br/><br/> Compute: ~100 A6000 hours|
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-Multi-VisionCLIPPool-LLAVA](https://huggingface.co/sshh12/Mistral-7B-LoRA-Multi-VisionCLIPPool-LLAVA) | **Vision** <br/> <br/> Encode images as `<image><image>...` and with `images`. | ⭐🖼️🖼️ A model pretrained and finetuned on the LLaVA dataset and a synthetic multi-image dataset. Images encoded as 10-tokens each and this should support up to 6 images. <br/><br/> Compute: ~100 A6000 hours|
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo](https://huggingface.co/sshh12/Mistral-7B-CLIP-LoRA-captions-only-demo) | **Vision** <br/> <br/> Encode images as `<image>` and with `images`. | ⚠️🖼️ This is a __very limited__ image model trained on only a few __caption-only__ examples for the sake of demonstrating a proof of concept. <br/><br/> Compute: ~10 3090 Ti hours |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-XCLIP](https://huggingface.co/sshh12/Mistral-7B-LoRA-XCLIP) | **Video** <br/> <br/> Encode videos as `<video>` and with `videos`. | ⚠️🎥 This is a __very limited__ video model. Hard to find good video caption datasets so this model is very undertrained. <br/><br/> Compute: ~50 A6000 hours |
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-AudioWhisper](https://huggingface.co/sshh12/Mistral-7B-LoRA-AudioWhisper) | **Audio (Speech)** <br/> <br/> Encode images as `<speech>` and with `speech_audios`. | ⚠️🔊 A model pretrained on commonvoice and finetuned on a GPT3.5 synthetic dataset. This pretty undertrained and isn't that great (also based on whisper-small) but it kind of works. <br/><br/> Compute: ~60 A6000 hours|
+| [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-AudioCLAP](https://huggingface.co/sshh12/Mistral-7B-LoRA-AudioCLAP) | **Audio (Sound)** <br/> <br/> Encode images as `<sound>` and with `sounds`. | ⚠️🔊 A model pretrained on `Chr0my/Epidemic_sounds` and finetuned on a GPT3.5 synthetic dataset. This pretty undertrained and but seems OK. <br/><br/> Compute: ~30 A6000 hours|
 
-⭐ = Seems OK, ⚠️ = Proof of concept, experimental
+⭐ = Useable, ⚠️ = Proof of concept, experimental
 
-### Vision (LLaVA-equivalent)
+### Vision
+
+##### LLaVA-equivalent
 
 ```
 python scripts/serve_model.py \
@@ -57,6 +65,86 @@ requests.post(
     },
 ).json()
 # {'output': 'When visiting this place, which is a lake with a wooden dock, there are a few things to be cautious about. First, be aware of the water depth and the presence of any hidden obstacles, such as rocks or underwater debris, that could pose a risk to your safety. Second, be mindful of the weather conditions, as sudden changes in weather can make the water unpredictable and potentially dangerous. Lastly, be cautious of any wildlife or marine life in the area, as they may pose a threat to your safety or cause damage to the dock.'}
+```
+
+##### Multi Image
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path sshh12/Mistral-7B-LoRA-Multi-VisionCLIPPool-LLAVA \
+    --port 7860
+```
+
+```python
+requests.post(
+    "http://localhost:7860/generate",
+    json={
+        "messages": [{"role": "user", "content": "<image><image> What is the difference in color between the images?"}],
+        "images": ["https://github.com/sshh12/multi_token/raw/main/.demo/wiki-pink-flower.jpg", "https://github.com/sshh12/multi_token/raw/main/.demo/wiki-yellow-flower.jpg"],
+    },
+).json()
+# {'output': 'The first image has a pink flower, while the second image has yellow flowers.'}
+```
+
+### Speech
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path sshh12/Mistral-7B-LoRA-AudioWhisper \
+    --port 7860
+```
+
+```python
+requests.post(
+    "http://localhost:7860/generate",
+    json={
+        "messages": [{"role": "user", "content": "What is being said? <speech>"}],
+        "speech_audios": ["https://github.com/sshh12/multi_token/raw/main/.demo/test.mp3"],
+    },
+).json()
+# {'output': 'This is a test.'}
+```
+
+### Sound
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path sshh12/Mistral-7B-LoRA-AudioCLAP \
+    --port 7860
+```
+
+```python
+requests.post(
+    "http://localhost:7860/generate",
+    json={
+        "messages": [{"role": "user", "content": "What is making this sound? <sound>"}],
+        "sounds": ["https://github.com/sshh12/multi_token/raw/main/.demo/imagebind-dog-audio.wav"],
+    },
+).json()
+# {'output': 'The sound is being made by a chihuahua barking.'}
+```
+
+### Video
+
+```
+python scripts/serve_model.py \
+    --model_name_or_path mistralai/Mistral-7B-Instruct-v0.1 \
+    --model_lora_path sshh12/Mistral-7B-LoRA-XCLIP \
+    --port 7860
+```
+
+```python
+requests.post(
+    "http://localhost:7860/generate",
+    json={
+        "messages": [{"role": "user", "content": "<video> What instrument is shown in the video?"}],
+        "videos": ["https://www.youtube.com/watch?v=3569sBBgVsc"],
+    },
+).json()
+# {'output': 'a man is playing the piano in a room'}
 ```
 
 ### ImageBind (Vision/Audio/Text)
@@ -94,7 +182,7 @@ from multi_token.modalities.document_gte import (
 )
 
 with open(".demo/llava-paper.txt", "r") as f:
-	docs = split_text_into_documents(f.read())
+    docs = split_text_into_documents(f.read())
 
 requests.post(
     "http://localhost:7860/generate",
@@ -105,13 +193,6 @@ requests.post(
 ).json()
 # {'output': 'Here is a summary of the key points from the paper:\n\n- The paper proposes a new dataset called LAML, which contains 100,000 image-text pairs with 100 different languages. The dataset aims to provide a large-scale resource for training multilingual vision-language models.\n\n- The authors find that existing multilingual vision-language models struggle to generate high-quality captions for images in languages they have not seen before. This is because the models lack the ability to generate language-specific knowledge...'}
 ```
-
-
-### Ideas
-
-Some other ideas I want to try to implement at some point:
-* **WhisperTranscriptModality**: encode voice audio so you can do things like `Answer the question asked in <audio>`. Given additional metadata like the speaker tone, accent, etc. this could be trained to personalize the response in a way that chat-based Q&A can't.
-* **MultiImage Q&A**: train a version of VisionClipModality (aka LLaVA) that takes multiple images inputs and answers questions
 
 ## Training
 
