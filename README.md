@@ -29,6 +29,8 @@ pip install flash-attn --no-build-isolation
 
 ### Model Zoo
 
+#### ⚠️ If you run into a missing `adapters.bin` see https://github.com/sshh12/multi_token/issues/12. ⚠️
+
 | Base Model                                                | Model | Modality | Notes |
 | - | - | - | - |
 | [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1) | [sshh12/Mistral-7B-LoRA-DocumentGTE-16K-x8](https://huggingface.co/sshh12/Mistral-7B-LoRA-DocumentGTE-16K-x8) | **Long Document** <br/> <br/> Encode a document as a series of `<document>` and with `documents`. | ⚠️📚 A compression model pretrained on wikipedia and finetuned on LongAlpaca and Long-Data-Collections. Compresses chunks of 512 tokens into 64 using [gte-large](https://huggingface.co/thenlper/gte-large), as expected the results are fairly lossy. It performs similarly to the x128 version suggesting the bottleneck is the embedding model itself. <br/><br/> Compute: ~100 A6000 hours|
